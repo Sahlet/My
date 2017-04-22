@@ -17,7 +17,7 @@ class Sturm;
 
 template<class T = long double>
 //typedef long double T; //не шаблон, потому что в конструкторе надо осуществлять проверку (смотри сам), а для осуществления проверки надо, чтоб тип T был double
-class polinom{
+class polinom {
 	shared_ptr< vector<T> > p;
 	shared_ptr< polinom > _d_dx;
 	shared_ptr< list< polinom > > for_Sturm;
@@ -26,6 +26,9 @@ class polinom{
 //директива препроцессора чтоб не объявлять статический член класса и чтоб не изменять значение везде, где стоит _MIN_VAL, если надо изменить...
 static const T eps;
 public:
+	polinom(const polinom&) = default;
+	polinom& operator=(const polinom&) = default;
+	//polinom(polinom&&) = default;
 #pragma region main interface
 	polinom(const vector<T> &p){
 		static auto min_val = abs(eps);
@@ -50,7 +53,7 @@ public:
 	}
 	inline polinom(polinom&& P) _NOEXCEPT : p(std::move(P.p)){}
 	inline polinom(){}
-	inline operator bool()const{ return p; }
+	inline operator bool() const { return bool(p); }
 	//значение многочлена в точке (операций 2n)
 	T operator()(const T& x) const {
 		if (!p) return 0;

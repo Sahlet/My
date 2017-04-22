@@ -34,6 +34,8 @@ public:
 	square_matrix (const matrix & obj) : matrix<T>(obj) throw(exception){
 		if (this->height() != this->width()) throw(exception("not squre range"));
 	}
+	square_matrix(const square_matrix* obj) : matrix<T>(*(matrix*)obj) {}
+	square_matrix(const square_matrix& obj) : square_matrix(*obj) {}
 	square_matrix (matrix && obj) _NOEXCEPT : matrix<T>(std::move(obj)){
 		if (this->height() != this->width()) throw(exception("not squre range"));
 	}
@@ -69,7 +71,7 @@ public:
 	//вз€ть детерминант
 	T det() const{
 		auto dim = this->size();
-		if (!dim) throw (range_error("empty matryx"));
+		if (!dim) return 0;//throw (range_error("empty matryx"));
 		T res = 0, tmp_res = 1;
 		flag *c = new flag[dim];//показывает зан€т ли столбец
 		long long * counts = new long long[dim];

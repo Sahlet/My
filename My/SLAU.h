@@ -105,9 +105,16 @@ namespace My{
 
 		square_matrix<T> S(dim);
 		T tmp = 0;
+		struct pow_func {
+			static double pow(double v, unsigned int p) {
+				if (p == 0) return 1;
+				for (int i = 1; i < p; i++) v *= v;
+				return v;
+			}
+		};
 		for (auto i = 0u; i < dim; i++){
 			tmp = 0;
-			for (auto k = 0u; k < i; k++) tmp += _Pow_int(S[k][i], 2);
+			for (auto k = 0u; k < i; k++) tmp += pow_func::pow(S[k][i], 2);
 			S[i][i] = sqrt(A[i][i] - tmp);
 			for (auto j = i + 1; j < dim; j++){
 				tmp = 0;
@@ -269,7 +276,7 @@ namespace My{
 	//	если выйдет так, что А не имеет ФСР - результатом будет вектор пустых векторов (что логично, так как выражать не из чего)
 	//template<class T>
 	vector< vector<T> > FSR(const matrix<T>& A, const T epsilon = 1e-10) throw (exception){
-		auto w = A.width(), h = A.height(), n = min(w, h);
+		auto w = A.width(), h = A.height(), n = w < h ? w : h;
 		if (n == 0) return vector< vector<T> >();
 		auto a = A.operator vector< vector<T> >();
 		//приводим "а" к трапециевидному виду

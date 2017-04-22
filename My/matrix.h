@@ -3,6 +3,8 @@
 #include <My\string.h>
 #include <vector>
 #include <set>
+#include <algorithm>
+#include <stdexcept>
 
 using namespace std;
 
@@ -28,7 +30,7 @@ template<class T>
 vector<T> operator-(const vector<T>& l, const vector<T>& r) throw(exception);/*{
 	return l + (-r);
 }*/
-//скал€рное произведение
+//????????? ????????????
 template<class T>
 T operator,(const vector<T>& l, const vector<T>& r) throw(exception);/*{
 	if (l.size() != r.size()) throw(runtime_error("bad size of vectors"));
@@ -48,15 +50,15 @@ string to_string(const vector<T>& v);/*{
 
 }
 
-
-//если будете использовать matrix::abs - не забудбте определить
-//matrix<Tupe_name>::abs_ matrix<Tupe_name>::abs_ptr = matrix<Tupe_name>::std_abs;
-//Tupe_name - им€ типа
+//???? ?????? ???????????? matrix::abs - ?? ???????? ??????????
+//matrix<Type_name>::abs_ matrix<Type_name>::abs_ptr = matrix<Type_name>::std_abs;
+//Type_name - ??? ????
 template<class T = long double>
 class matrix : protected vector< vector<T> >{
-	typedef T (*abs_)(const matrix&) throw (exception);
+	typedef T (*abs_)(const matrix&);
 	static abs_ abs_ptr;
 public:
+	matrix(const matrix&) = default;
 	static abs_ set_abs(abs_ value){
 		abs_ res = abs_ptr;
 		abs_ptr = value;
@@ -83,9 +85,9 @@ public:
 			res.courent = res.end;
 			return res;
 		}
-		//преф
+		//????
 		iterator& operator++() throw(exception){
-			if (courent == end) throw range_error("out of range");
+			if (courent == end) throw std::range_error("out of range");
 			if(++sub_courent == courent->end()){
 				courent++;
 				if (courent != end) sub_courent = courent->begin();
@@ -109,11 +111,11 @@ public:
 			return !((*this) == r);
 		}
 		T& operator*(){
-			if (courent == end) throw range_error("out of range");
+			if (courent == end) throw std::range_error("out of range");
 			return *sub_courent;
 		}
 		T* operator->(){
-			if (courent == end) throw range_error("out of range");
+			if (courent == end) throw std::range_error("out of range");
 			return sub_courent.operator->();
 		}
 	};
@@ -123,7 +125,7 @@ public:
 		const_iterator (const iterator& i) : iterator(i){}
 	public:
 		bool operator==(const const_iterator& r) throw(exception){
-			return this->iterator::operator==(r); 
+			return this->iterator::operator==(r);
 		}
 		bool operator!=(const iterator& r) throw(exception){
 			return !((*this) == r);
@@ -154,7 +156,7 @@ public:
 	matrix (const vector<T>& v) : base(1){
 		*(this->base::begin()) = v;
 	}
-	matrix (vector<T>&& v) _NOEXCEPT : base(1){
+	matrix (vector<T>&& v) noexcept : base(1){
 		*(this->base::begin()) = std::move_if_noexcept(v);
 	}
 	matrix (const base& b) throw(exception){
@@ -168,7 +170,7 @@ public:
 	operator vector< vector<T> >() const{
 		return *this;
 	}
-	matrix (matrix && obj) _NOEXCEPT : base((base&&)std::move(obj)){}
+	matrix (matrix && obj) noexcept : base((base&&)std::move(obj)){}
 	matrix& operator=(matrix && obj){
 		*((vector< vector<T> >*)this) = (base&&)std::move_if_noexcept(obj);
 		return *this;
@@ -177,7 +179,7 @@ public:
 		vector<T> * const ptr;
 	public:
 		for_square_brackets(vector<T> * const &ptr) : ptr(ptr) {}
-		T& operator[](const unsigned int& j) throw(range_error){
+		T& operator[](const unsigned int& j) throw(std::range_error){
 			return (*ptr)[j];
 		}
 		operator vector<T>(){
@@ -198,20 +200,20 @@ public:
 		return const_iterator(*(matrix*)this).get_end();
 	}
 
-	for_square_brackets operator [](const unsigned int& i) throw(range_error){
+	for_square_brackets operator [](const unsigned int& i) throw(std::range_error){
 		return for_square_brackets(&(this->base::operator[](i)));
 	}
-	const vector<T>& operator [](const unsigned int& i) const throw(range_error){
+	const vector<T>& operator [](const unsigned int& i) const throw(std::range_error){
 		return this->base::operator[](i);
 	}
-	T& operator()(const pair<unsigned int, unsigned int>& point) throw(range_error){
+	T& operator()(const pair<unsigned int, unsigned int>& point) throw(std::range_error){
 		return (*this)[point.first][point.second];
 	}
-	T& operator()(const unsigned int& width, const unsigned int& height) throw(range_error){
+	T& operator()(const unsigned int& width, const unsigned int& height) throw(std::range_error){
 		return (*this)[width][height];
 	}
-	
-	//вз€ть транспланированную
+
+	//????? ??????????????????
 	matrix get_transplanted() const{
 		auto w = this->width(), h = this->height();
 		matrix res(h, w);
@@ -222,7 +224,7 @@ public:
 		}
 		return res;
 	}
-	//вз€ть транспланированную
+	//????? ??????????????????
 	matrix operator~() const{
 		return this->get_transplanted();
 	}
@@ -236,7 +238,7 @@ public:
 		return *this = *this * v;
 	}
 	matrix& operator*=(const matrix& m) throw(exception){
-		if (this->width() != m.height()) throw(runtime_error("bad size of matix"));
+		if (this->width() != m.height()) throw(std::runtime_error("bad size of matix"));
 		matrix res(m.width(), this->height());
 		auto m_t = m.get_transplanted();
 		auto res_i = res.base::begin();
@@ -294,10 +296,10 @@ public:
 		return this->base::operator!=(m);
 	}
 
-	/*нормаль ||matrix|| = MAX{
+	/*??????? ||matrix|| = MAX{
 		SUM{
-			abs(A[i][j]) | j Ї { 0 , ... , matrix.width - 1 }
-		} | i Ї { 0 , ... , matrix.height - 1 }
+			abs(A[i][j]) | j ? { 0 , ... , matrix.width - 1 }
+		} | i ? { 0 , ... , matrix.height - 1 }
 	}*/
 	static T std_abs(const matrix& m) throw (exception){
 		//if (m.abs_ptr && abs_ptr != abs) abs_ptr(m);
@@ -310,7 +312,7 @@ public:
 		}
 		return res;
 	}
-	//нормаль ||matrix||
+	//??????? ||matrix||
 	T abs() throw (exception){
 		return abs_ptr(*this);
 	}
@@ -325,7 +327,7 @@ public:
 	try{
 		for (auto i = 0u; i < h; i++)
 			for (auto j = 0u; j < w; j++)
-				max_len = max((ar[i][j] = My::to_string((*this)[i][j])).length(), max_len);
+				max_len = std::max((int)(ar[i][j] = My::to_string((*this)[i][j])).length(), (int)max_len);
 	}catch(...){
 		for (auto i = ar, end = ar + h; i != end; i++) delete[] *i;
 		delete[] ar;
@@ -370,8 +372,8 @@ matrix<T> sub_matrix(const matrix<T>& m, const pair<unsigned int, unsigned int>&
 }
 
 template<class T>
-//если flag - true - вернет матрицу, в которой наход€тс€ елементы на пересечении строк и столбцов, что в lines и colums,
-//если flag - false - вернет матрицу, в которой наход€тс€ елементы что не вход€т ни в строки ни в столбци, что в lines и colums,
+//???? flag - true - ?????? ???????, ? ??????? ????????? ???????? ?? ??????????? ????? ? ????????, ??? ? lines ? colums,
+//???? flag - false - ?????? ???????, ? ??????? ????????? ???????? ??? ?? ?????? ?? ? ?????? ?? ? ???????, ??? ? lines ? colums,
 matrix<T> sub_matrix(const matrix<T>& m, const set<unsigned int>& lines, const set<unsigned int>& columns, const bool& flag_) throw(range_error){
 	auto w_m = m.width(), h_m = m.height(), w_res = 0u, h_res = 0u;
 	for(const auto& i : lines){
