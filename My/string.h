@@ -5,9 +5,9 @@
 #include <string>
 namespace My{
 	struct dub_to_str{
-		static std::string duble_to_string(const long double& val){
+		static std::string duble_to_string(const double& val){
 			char str[50];
-			sprintf_s(str, "%.30lf", val);
+			sprintf(str, "%.30lf", val);
 			auto res = std::string(str);
 			auto i = res.rbegin();
 			unsigned int count = 0;
@@ -16,7 +16,7 @@ namespace My{
 			return res.substr(0, res.length() - count);
 		}
 	};
-	
+
 	inline std::string to_string(const long double& val){
 		return dub_to_str::duble_to_string(val);
 	}

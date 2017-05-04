@@ -1,11 +1,12 @@
 //matrix.h
 #pragma once
-#include <My\string.h>
+#include <My/string.h>
 #include <vector>
 #include <set>
 #include <algorithm>
 #include <stdexcept>
 #include <sstream>
+#include <exception>
 
 namespace My{
 
@@ -158,7 +159,7 @@ public:
 	matrix& operator*=(const matrix& m) throw(std::exception) {
 		if (w != m.h) throw(std::runtime_error("bad size of matix"));
 		matrix res(m.w, h);
-		
+
 		for (US i = 0; i < res.h; i++) {
 			for (US j = 0; j < res.w; j++) {
 				for (US k = 0; k < w; k++) {
@@ -187,8 +188,8 @@ public:
 	matrix operator+(const T& t) const {
 		return std::move(matrix(*this) += t);
 	}
-	matrix& operator+=(const matrix& m) throw (std::exception) {
-		if (this->w != m.w || this->h != m.h) throw std::exception("bad sizes");
+	matrix& operator+=(const matrix& m) throw (std::invalid_argument) {
+		if (this->w != m.w || this->h != m.h) throw std::invalid_argument("bad sizes");
 		auto iter = m.begin();
 		for (auto& i : *this) i += *iter++;
 		return *this;
@@ -201,8 +202,8 @@ public:
 		for (auto& i : res) i = -i;
 		return res;
 	}
-	matrix& operator-=(const matrix& m) throw (std::exception) {
-		if (this->width() != m.width() || this->height() != m.height()) throw std::exception("bad sizes");
+	matrix& operator-=(const matrix& m) throw (std::invalid_argument) {
+		if (this->width() != m.width() || this->height() != m.height()) throw std::invalid_argument("bad sizes");
 		auto iter = m.begin();
 		for (auto& i : *this) i -= *iter++;
 		return *this;
@@ -245,7 +246,7 @@ public:
 		for (const auto& value : (*this)) {
 			max_len = std::max((int)My::to_string(value).length(), (int)max_len);
 		}
-		
+
 
 		std::stringstream res;
 		int i = 0;
@@ -256,7 +257,7 @@ public:
 			res << value;
 			int new_length = res.tellp();
 			res << (spaces.c_str() + (new_length - old_length));
-			
+
 			if (++i == w) {
 				i = 0;
 				res << '|' + '\n';
@@ -319,7 +320,7 @@ matrix<T> sub_matrix(const matrix<T>& m, const std::set<US>& lines, const std::s
 	for(const auto& i : columns) {
 		if (i >= w_m) throw (std::range_error("out of range"));
 	}
-	
+
 	if (flag_) {
 		w_res = columns.size();
 		h_res = lines.size();
@@ -327,7 +328,7 @@ matrix<T> sub_matrix(const matrix<T>& m, const std::set<US>& lines, const std::s
 		w_res = w_m - columns.size();
 		h_res = h_m - lines.size();
 	}
-	
+
 	matrix<T> res(w_res, h_res);
 	auto iter = res.begin();
 	if (flag_) {
