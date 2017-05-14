@@ -242,9 +242,9 @@ public:
 		return abs_ptr(m);
 	}
 	virtual std::string to_string() const {
-		auto max_len = 0u;
+		int max_len = 0;
 		for (const auto& value : (*this)) {
-			max_len = std::max((int)My::to_string(value).length(), (int)max_len);
+			max_len = std::max((int)My::to_string(value).length(), max_len);
 		}
 
 
@@ -254,19 +254,33 @@ public:
 		for (const auto& value : (*this)) {
 			res << '|';
 			int old_length = res.tellp();
-			res << value;
+			res << My::to_string(value);
 			int new_length = res.tellp();
 			res << (spaces.c_str() + (new_length - old_length));
 
 			if (++i == w) {
 				i = 0;
-				res << '|' + '\n';
+				res << '|' << '\n';
 			}
 		}
 
 		return res.str();
 	}
 };
+
+template<class T>
+matrix< T > element_mult(const matrix< T >& l, const matrix< T >& r) throw(std::exception) {
+  if (l.width() != r.width() || l.height() != r.height()) throw(std::runtime_error("bad size of matix"));
+  auto res = l;
+
+  auto iter = r.begin();
+
+  for (auto& elem : res) {
+    elem *= *iter++;
+  }
+
+  return res;
+}
 
 template<class T>
 std::vector<T> operator*(const std::vector<T>& v, const matrix<T>& m) throw(std::exception) {

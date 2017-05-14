@@ -14,13 +14,11 @@ namespace My {
 
 	class Perceptron {
 		std::vector< matrix< double > > weights;
-		
-		//there is some problems with training NN with linear outputs
-		//bool last_is_linear = false;
 
 		struct flushable {
 			std::vector< matrix< double > > weights_gradients;
 			std::vector< std::vector< double > > outputs;
+			int errors = 0;
 		};
 		std::unique_ptr< flushable > context;
 
@@ -36,7 +34,7 @@ namespace My {
 			}
 			return std::move(vec);
 		}
-		
+
 		void copy(const Perceptron& p);
 		void move(Perceptron& p) noexcept;
 	public:
@@ -44,7 +42,6 @@ namespace My {
 			US inputs = 0,
 			US outputs = 0,
 			const std::vector< US >& hidden = std::vector< US >()
-			//,bool linear_outs = false
 		) throw (std::invalid_argument);
 		Perceptron(const Perceptron& p) { this->copy(p); }
 		Perceptron(Perceptron&& p) noexcept { this->move(p); }
@@ -63,8 +60,10 @@ namespace My {
 		std::vector< double > forward_prop(std::vector< double > input) throw (std::invalid_argument);
 
 		void flush();
-		bool flushed() { return !context; }
-		//bool is_last_linear() { return last_is_linear; }
+		bool flushed() { return !context || !context->errors; }
+		void release_buffer() {
+		  context.reset();
+		}
 
 		//errors in back_prop method
 		typedef std::vector< double > errors;
@@ -76,11 +75,13 @@ namespace My {
 		errors put_errors(errors e, bool flush = true) throw (std::runtime_error);
 
 		struct pattern {
-			const std::vector< double >& input;
-			const std::vector< double >& output;
+			std::vector< double > input;
+			std::vector< double > output;
 
-			pattern(const std::pair< std::vector< double >, std::vector< double > >& data) :
-				input(data.first), output(data.second) {}
+			pattern(std::pair< std::vector< double >, std::vector< double > > data) :
+			  input(std::move(data.first)), output(std::move(data.second)) {}
+			pattern(std::vector< double > input, std::vector< double > output) :
+			  input(std::move(input)), output(std::move(output)) {}
 		};
 
 		//returns sum of ERROR values
@@ -91,23 +92,13 @@ namespace My {
 			return back_prop(std::vector< pattern >{ p });
 		}
 
-		//returns sum of ERROR values
-		double back_prop(const std::vector< std::pair < std::vector< double >, std::vector< double > > >& patterns1) throw (std::out_of_range, std::invalid_argument) {
-			std::vector< My::Perceptron::pattern > patterns;
-			patterns.reserve(patterns1.size());
-			for (auto& pattern : patterns1) {
-				patterns.emplace_back(pattern);
-			}
-			return back_prop(patterns);
-		}
-
 		void write_to_stream(std::ostream& os) const;
 		static Perceptron from_stream(std::istream& is);
 	};
 }
 
-std::ostream& operator & (std::ostream& os, const My::Perceptron& p);
+std::ostream& operator << (std::ostream& os, const My::Perceptron& p);
 
-std::istream& operator & (std::istream& is, My::Perceptron& p);
+std::istream& operator >> (std::istream& is, My::Perceptron& p);
 
 #endif
