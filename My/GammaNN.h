@@ -1,16 +1,21 @@
 #ifndef __GAMMANN_HPP__
 #define __GAMMANN_HPP__
 
-#include "Perceptron.h"
+#include <My/Perceptron.h>
 
 namespace My {
 
-  class GammaNN {
+  struct GammaNN_fields;
 
-    GammaNN(Perceptron p, std::vector< std::vector< double > > data) {
+  struct GammaNN {
+    typedef std::vector< double > object;
 
-    }
+    GammaNN(std::vector< object > data, int units = 1);
 
+    object operator[](int index);
+
+  private:
+    std::unique_ptr< GammaNN_fields > fields;
   };
 
 }

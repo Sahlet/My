@@ -66,11 +66,19 @@ public:
 	matrix& operator = (std::vector<T>&& v) {
 		return  (*this) = matrix(std::move(v));
 	}
+	template< typename _T1_ >
+	matrix& operator = (_T1_ v) {
+	  for (auto& value : *this) {
+	    value = v;
+	  }
+	  return *this;
+	}
 
 	inline const US& get_w() const {return w;}
 	inline const US& get_h() const {return h;}
 	inline const US& width() const { return w; }
 	inline const US& height() const { return h; }
+	inline std::pair<US, US> dimension() const { return std::pair< US, US >(w, h); }
 
 	T& operator()(const US& i, const US& j) throw(std::range_error) {
 		return vec[j + i*w];
@@ -174,7 +182,8 @@ public:
 	matrix operator*(const matrix& m) const throw(std::exception) {
 		return std::move(matrix(*this) *= m);
 	}
-	matrix& operator*=(const T& t) throw(std::exception) {
+	template< typename _T1_ >
+	matrix& operator*=(_T1_ t) throw(std::exception) {
 		for (auto& i : (*this)) i *= t;
 		return *this;
 	}

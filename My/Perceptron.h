@@ -9,6 +9,8 @@
 #include <stdexcept>
 
 #include <My/matrix.h>
+#include <My/VectorAlgebra.h>
+#include <My/Serialization.h>
 
 namespace My {
 
@@ -18,7 +20,10 @@ namespace My {
 		struct flushable {
 			std::vector< matrix< double > > weights_gradients;
 			std::vector< std::vector< double > > outputs;
-			int errors = 0;
+			int last_batch_size = 0;
+			std::vector< matrix< double > > weights_gradients_accumulator;
+			double speed = 1;
+			double prev_global_error = 0, cur_global_error = 0;
 		};
 		std::unique_ptr< flushable > context;
 
@@ -60,7 +65,7 @@ namespace My {
 		std::vector< double > forward_prop(std::vector< double > input) throw (std::invalid_argument);
 
 		void flush();
-		bool flushed() { return !context || !context->errors; }
+		bool flushed() { return !context || !context->last_batch_size; }
 		void release_buffer() {
 		  context.reset();
 		}
