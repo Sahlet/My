@@ -9,7 +9,7 @@ namespace {
 
 #define OPERATION_RESULT(OPERATOR) decltype( std::declval<_T1_>() OPERATOR std::declval<_T2_>() )
 
-#define VEC_OPERATIONS(NAME, OPERATOR)                                                            \
+#define VEC_OPERATIONS1(NAME, OPERATOR)                                                           \
 template<class _T1_, class _T2_>                                                                  \
 std::vector< OPERATION_RESULT(OPERATOR) >                                                         \
 NAME(const std::vector< _T1_ >& v1, const std::vector< _T2_ >& v2) {                              \
@@ -31,15 +31,31 @@ NAME(const _T1_& v1, const std::vector< _T2_ >& v2) {                           
   std::vector< OPERATION_RESULT(OPERATOR) > res(v2.size());                                       \
   for (int i = 0; i < v2.size(); i++) { res[i] = v1 OPERATOR v2[i]; }                             \
   return std::move(res);                                                                          \
-}                                                                                                 \
+}
 
-VEC_OPERATIONS(operator+, +);
-VEC_OPERATIONS(operator-, -);
-VEC_OPERATIONS(operator*, *);
+#define VEC_OPERATIONS2(NAME, OPERATOR)                                                           \
+template<class _T1_, class _T2_>                                                                  \
+std::vector< _T1_ >& NAME(std::vector< _T1_ >& v1, const std::vector< _T2_ >& v2) {               \
+  if (v1.size() != v2.size()) throw std::invalid_argument("v1 and v2 have different dimensions"); \
+  for (int i = 0; i < v1.size(); i++) { v1[i] OPERATOR v2[i]; }                                   \
+  return v1;                                                                                      \
+}                                                                                                 \
+template<class _T1_, class _T2_>                                                                  \
+std::vector< _T1_ >& NAME(std::vector< _T1_ >& v1, const _T2_& v2) {                              \
+  for (int i = 0; i < v1.size(); i++) { v1[i] OPERATOR v2; }                                      \
+  return v1;                                                                                      \
+}
+
+VEC_OPERATIONS1(operator+, +);
+VEC_OPERATIONS1(operator-, -);
+VEC_OPERATIONS1(operator*, *);
+VEC_OPERATIONS2(operator+=, +=);
+VEC_OPERATIONS2(operator-=, -=);
+VEC_OPERATIONS2(operator*=, *=);
 
 template<class _T1_, class _T2_>
 std::vector< _T1_ >& set_value(std::vector< _T1_ >& v1, const _T2_& v2) {
-  for (int i = 0; i < v2.size(); i++) { v1[i] = v2; }
+  for (int i = 0; i < v1.size(); i++) { v1[i] = v2; }
   return v1;
 }
 
