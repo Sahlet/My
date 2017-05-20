@@ -102,8 +102,19 @@ namespace My {
 	};
 }
 
-std::ostream& operator << (std::ostream& os, const My::Perceptron& p);
-
-std::istream& operator >> (std::istream& is, My::Perceptron& p);
+inline std::ostream& operator & (std::ostream& os, const My::Perceptron& p) {
+  p.write_to_stream(os);
+  return os;
+}
+inline std::istream& operator & (std::istream& is, My::Perceptron& p) {
+  p = std::move(My::Perceptron::from_stream(is));
+  return is;
+}
+inline std::ostream& operator << (std::ostream& os, const My::Perceptron& p) {
+  return os & p;
+}
+inline std::istream& operator >> (std::istream& is, My::Perceptron& p) {
+  return is & p;
+}
 
 #endif

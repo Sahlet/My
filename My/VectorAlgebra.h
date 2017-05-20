@@ -37,7 +37,11 @@ VEC_OPERATIONS(operator+, +);
 VEC_OPERATIONS(operator-, -);
 VEC_OPERATIONS(operator*, *);
 
-
+template<class _T1_, class _T2_>
+std::vector< _T1_ >& set_value(std::vector< _T1_ >& v1, const _T2_& v2) {
+  for (int i = 0; i < v2.size(); i++) { v1[i] = v2; }
+  return v1;
+}
 
 
 
