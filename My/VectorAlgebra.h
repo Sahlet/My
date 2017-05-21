@@ -60,6 +60,22 @@ std::vector< _T1_ >& set_value(std::vector< _T1_ >& v1, const _T2_& v2) {
 }
 
 
+template<class _T1_, class _T2_, class _T3_>
+_T1_ clamp(const _T1_& v1, const _T2_& v2, const _T3_& v3) {
+  if (v1 < v2) return v2;
+  if (v1 > v3) return v3;
+  return v1;
+}
+
+template<class _T1_, class _T2_, class _T3_>
+std::vector< _T1_ > clamp(const std::vector< _T1_ >& v1, const _T2_& v2, const _T3_& v3) {
+  std::vector< _T1_ > res(v1.size());
+  for (int i = 0; i < v1.size(); i++) {
+    res[i] = clamp(v1[i], v2, v3);
+  }
+  return std::move(res);
+}
+
 
 template<class _T1_, class _T2_>
 OPERATION_RESULT(*)
@@ -77,6 +93,17 @@ std::vector< decltype( -std::declval<T>() ) > operator-(const std::vector< T >& 
   return std::move(res);
 }
 }
+}
+
+template<class T>
+inline std::ostream& operator << (std::ostream& os, const std::vector< T >& v) {
+  os << "{";
+  if (v.size()) {
+    os << " " << v[0];
+    for (int i = 1; i < v.size(); i++) { os << " ," << v[i]; }
+  }
+  os << " }";
+  return os;
 }
 
 #endif

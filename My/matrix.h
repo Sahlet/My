@@ -17,6 +17,51 @@ namespace My{
 
 typedef unsigned short US;
 
+template<class T> class matrix;
+
+template<class T>
+class for_square_brackets {
+  friend class My::matrix< T >;
+  T* ptr;
+  US w;
+  for_square_brackets(const for_square_brackets&)  = default;
+  for_square_brackets(for_square_brackets&&)  = default;
+  for_square_brackets& operator=(for_square_brackets&&) = delete;
+  for_square_brackets(T* data, US w, US i) : ptr(data + i*w), w(w) {}
+public:
+
+  for_square_brackets& operator=(const for_square_brackets& obj) throw (std::invalid_argument) {
+    if (obj.w != w) throw (std::invalid_argument("for_square_brackets::operator=(const for_square_brackets& obj) : dimention error"));
+    if (ptr == obj.ptr) return;
+    for (int i = 0; i < w; i++) {
+      ptr[i] = obj.ptr[i];
+    }
+    return *this;
+  }
+  for_square_brackets& operator=(const std::vector< T >& obj) throw (std::invalid_argument) {
+    if (obj.size() != w) throw (std::invalid_argument("for_square_brackets::operator=(const std::vector< T >& obj) : dimention error"));
+    for (int i = 0; i < w; i++) {
+      ptr[i] = obj[i];
+    }
+    return *this;
+  }
+  T& operator[](const US& j) throw(std::range_error) {
+    if (j >= w) throw std::range_error("j >= w");
+    return ptr[j];
+  }
+  const T& operator[](const US& j) const throw(std::range_error) {
+    return (*const_cast< for_square_brackets* >(this))[j];
+  }
+
+  operator std::vector< T >() const {
+    std::vector< T > res(w);
+    for (int i = 0; i < w; i++) {
+      res[i] = ptr[i];
+    }
+    return std::move(res);
+  }
+};
+
 //typedef long double T;
 template<class T = long double>
 class matrix {
@@ -79,6 +124,7 @@ public:
 	inline const US& width() const { return w; }
 	inline const US& height() const { return h; }
 	inline std::pair<US, US> dimension() const { return std::pair< US, US >(w, h); }
+	const std::vector< T >& get_vec() const { return vec; };
 
 	T& operator()(const US& i, const US& j) throw(std::range_error) {
 		return vec[j + i*w];
@@ -94,25 +140,11 @@ public:
 		return (*const_cast< matrix* >(this))[coordinates];
 	}
 
-	class for_square_brackets {
-		T* ptr;
-		US w;
-	public:
-		for_square_brackets(T* data, US w, US i) : ptr(data + i*w), w(w) {}
-		T& operator[](const US& j) throw(std::range_error) {
-			if (j >= w) throw std::range_error("j >= w");
-			return ptr[j];
-		}
-		const T& operator[](const US& j) const throw(std::range_error) {
-			return (*const_cast< for_square_brackets* >(this))[j];
-		}
-	};
-
-	for_square_brackets operator[](const US& i) throw(std::range_error) {
+	for_square_brackets< T > operator[](const US& i) throw(std::range_error) {
 		if (i >= h) throw std::range_error("i >= h");
-		return for_square_brackets(vec.data(), w, i);
+		return for_square_brackets< T >(vec.data(), w, i);
 	}
-	const for_square_brackets operator[](const US& i) const throw(std::range_error) {
+	const for_square_brackets< T > operator[](const US& i) const throw(std::range_error) {
 		return (*const_cast< matrix* >(this))[i];
 	}
 

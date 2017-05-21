@@ -1,3 +1,5 @@
+//Perceptron.h
+
 #ifndef __PERCEPTRON_HPP__
 #define __PERCEPTRON_HPP__
 
@@ -94,13 +96,12 @@ namespace My {
 
 		//returns ERROR value
 		double back_prop(const pattern& p) throw (std::invalid_argument) {
-			return back_prop(std::vector< pattern >{ p });
+			return back_prop({ p });
 		}
 
 		void write_to_stream(std::ostream& os) const;
 		static Perceptron from_stream(std::istream& is);
 	};
-}
 
 inline std::ostream& operator & (std::ostream& os, const My::Perceptron& p) {
   p.write_to_stream(os);
@@ -115,6 +116,8 @@ inline std::ostream& operator << (std::ostream& os, const My::Perceptron& p) {
 }
 inline std::istream& operator >> (std::istream& is, My::Perceptron& p) {
   return is & p;
+}
+
 }
 
 #endif

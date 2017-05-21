@@ -1,13 +1,13 @@
+//Serialization.h
+
 #ifndef __SERIALIZATION_HPP__
 #define __SERIALIZATION_HPP__
 
-//Serialization.h
 #include <vector>
 #include <My/matrix.h>
 
 namespace My {
 namespace {
-
 //-----------------------------------------------------------------------
 //SERIALIZE
 template< class T >
@@ -73,6 +73,7 @@ typename std::enable_if<std::is_compound<T>::value && !std::is_enum<T>::value, s
     serialize(is, obj);
     return is;
   }
+
 }
 }
 
