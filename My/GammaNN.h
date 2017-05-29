@@ -41,6 +41,7 @@ namespace My {
     US get_object_dimention();
     US get_units_number();
     US get_trace_size();
+    US get_min_learn_pattern();
     US get_series_size();
     US get_src_series_size();
 
@@ -51,6 +52,8 @@ namespace My {
     double learn(const UI& p) throw (std::range_error) {
       return learn({ p });
     }
+
+    void clear_learning();
 
     object operator[](UI index);
 

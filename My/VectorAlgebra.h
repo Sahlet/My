@@ -3,6 +3,7 @@
 
 //VectorAlgebra.h
 #include <vector>
+#include <ostream>
 
 namespace My {
 namespace {
@@ -95,6 +96,7 @@ std::vector< decltype( -std::declval<T>() ) > operator-(const std::vector< T >& 
 }
 }
 
+namespace My {
 template<class T>
 inline std::ostream& operator << (std::ostream& os, const std::vector< T >& v) {
   os << "{";
@@ -104,6 +106,12 @@ inline std::ostream& operator << (std::ostream& os, const std::vector< T >& v) {
   }
   os << " }";
   return os;
+}
+}
+
+template<class T>
+inline std::ostream& operator << (std::ostream& os, const std::vector< T >& v) {
+  return My::operator<<(os, v);
 }
 
 #endif
