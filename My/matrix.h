@@ -283,9 +283,15 @@ public:
 		return abs_ptr(m);
 	}
 	virtual std::string to_string() const {
+
+	  auto to_string = [](double d) -> std::string {
+	    //return My::to_string(d);
+	    return std::to_string(d);
+	  };
+
 		int max_len = 0;
 		for (const auto& value : (*this)) {
-			max_len = std::max((int)My::to_string(value).length(), max_len);
+			max_len = std::max((int)to_string(value).length(), max_len);
 		}
 
 
@@ -295,7 +301,7 @@ public:
 		for (const auto& value : (*this)) {
 			res << '|';
 			int old_length = res.tellp();
-			res << My::to_string(value);
+			res << to_string(value);
 			int new_length = res.tellp();
 			res << (spaces.c_str() + (new_length - old_length));
 

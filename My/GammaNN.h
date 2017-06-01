@@ -68,19 +68,19 @@ namespace My {
 
 }
 
-// inline std::ostream& operator & (std::ostream& os, const My::GammaNN& g) {
-//   g.write_to_stream(os);
-//   return os;
-// }
-// inline std::istream& operator & (std::istream& is, My::GammaNN& g) {
-//   g = std::move(My::GammaNN::from_stream(is));
-//   return is;
-// }
-// inline std::ostream& operator << (std::ostream& os, const My::GammaNN& g) {
-//   return os & g;
-// }
-// inline std::istream& operator >> (std::istream& is, My::GammaNN& g) {
-//   return is & g;
-// }
+inline std::ostream& operator & (std::ostream& os, const My::GammaNN& g) {
+  g.write_to_stream(os);
+  return os;
+}
+inline std::istream& operator & (std::istream& is, My::GammaNN& g) {
+  g = std::move(My::GammaNN::from_stream(is));
+  return is;
+}
+inline std::ostream& operator << (std::ostream& os, const My::GammaNN& g) {
+  return os & g;
+}
+inline std::istream& operator >> (std::istream& is, My::GammaNN& g) {
+  return is & g;
+}
 
 #endif
