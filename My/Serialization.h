@@ -59,6 +59,20 @@ void serialize(std::istream& is, matrix< T >& m) {
   for (auto& obj : m) { is & obj; }
 }
 
+//STRING SERIALIZE
+template< class T >
+void serialize(std::ostream& os, const std::basic_string< T >& v) {
+  os & v.size();
+  for (auto& obj : v) { os & obj; }
+}
+template< class T >
+void serialize(std::istream& is, std::basic_string< T >& v) {
+  typename std::vector< T >::size_type size;
+  is & size;
+  v.resize(size);
+  for (auto& obj : v) { is & obj; }
+}
+
 //-----------------------------------------------------------------------
 //SERIALIZE
 template< class T >
