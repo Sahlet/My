@@ -44,6 +44,7 @@ namespace My {
     US get_min_learn_pattern();
     US get_series_size();
     US get_src_series_size();
+    const Perceptron& get_percreptron();
     std::vector< std::string > get_col_names();
     void set_col_names(std::vector< std::string > names) throw (std::invalid_argument);
 
