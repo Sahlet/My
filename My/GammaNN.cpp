@@ -15,7 +15,7 @@ namespace My {
 
   class Series {
     friend class GammaNN;
-    const My::matrix< double > src_data;
+    My::matrix< double > src_data;
     std::vector< GammaNN::object > gen_data;
   public:
 
@@ -38,6 +38,18 @@ namespace My {
       }
 
       return gen_data[index - src_data.height()];
+    }
+
+    void fix_object(UI index, GammaNN::object obj) {
+      if (index >= size()) throw std::out_of_range("Series: out_of_range in \"fix_object\"");
+      if (index < src_data.height()) {
+        src_data[index] = std::move(obj);
+        return;
+      }
+
+      auto index_for_gen = index - src_data.height();
+      gen_data.resize(index_for_gen + 1);
+      gen_data[index_for_gen] = std::move(obj);
     }
   };
 
@@ -349,7 +361,7 @@ namespace My {
 
   void GammaNN::clear_learning() {
     for(auto& unit : members->units) {
-      unit.clear_and_next_n_times(get_src_series_size());
+      unit.clear_and_next_n_times(get_series_size());
     }
     members->p.release_buffer();
   }
@@ -379,6 +391,11 @@ namespace My {
     return members->series[index];
   }
 
+  void GammaNN::fix_object(UI index, GammaNN::object obj) {
+    members->series.fix_object(index, std::move(obj));
+    clear_learning();
+  }
+
   GammaNN::GammaNN(const GammaNN& nn) {
     (*this) = nn;
   }
@@ -387,6 +404,9 @@ namespace My {
   }
   GammaNN& GammaNN::operator=(const GammaNN& nn) {
     members.reset(new GammaNN_members(*nn.members));
+    for (auto& unit : this->members->units) {
+      unit.series_ptr = &this->members->series;
+    }
     return *this;
   }
   GammaNN& GammaNN::operator=(GammaNN&& nn) {
@@ -398,7 +418,7 @@ namespace My {
 
 #define SERIALIZE_MEMBERS(STREAM, MEMBERS)                       \
   STREAM                                                         \
-    & const_cast<My::matrix< double >&>(MEMBERS->series.src_data)\
+    & MEMBERS->series.src_data                                   \
     & MEMBERS->series.gen_data                                   \
     & MEMBERS->units                                             \
     & MEMBERS->trace_size                                        \

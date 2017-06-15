@@ -58,6 +58,8 @@ namespace My {
 
     void clear_learning();
 
+    void fix_object(UI index, GammaNN::object obj);
+
     object operator[](UI index);
 
     void write_to_stream(std::ostream& os) const;
