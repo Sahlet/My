@@ -22,95 +22,141 @@ using std::move;
  * Serialization
  */
 
+#define CONST_STR_LEN(STR) (sizeof(STR) - sizeof('\0'))
+
+inline static void plus(std::string &out, const std::string& operand) {
+	out += operand;
+}
+inline static void plus(std::string &out, const char* operand) {
+	out += operand;
+}
+inline static void plus(std::string &out, char operand) {
+	out += operand;
+}
+inline static void plus(size_t &out, const std::string& operand) {
+	out += operand.size();
+}
+inline static void plus(size_t &out, const char* operand) {
+	out += strlen(operand);
+}
+inline static void plus(size_t &out, char operand) {
+	out += sizeof(operand);
+}
+
 static void dump(std::nullptr_t, string &out) {
     out += "null";
 }
+static void dump(std::nullptr_t, size_t &out) {
+	out += CONST_STR_LEN("null");
+}
 
-static void dump(double value, string &out) {
+template < typename T >
+static void dump(double value, T &out) {
     if (std::isfinite(value)) {
         char buf[32];
         snprintf(buf, sizeof buf, "%.17g", value);
-        out += buf;
-    } else {
-        out += "null";
-    }
+        plus(out, buf);
+    } else plus(out, "null");
 }
 
-static void dump(int64_t value, string &out) {
+template < typename T >
+static void dump(int64_t value, T &out) {
     char buf[32];
     snprintf(buf, sizeof buf, "%lld", value);
-    out += buf;
+    plus(out, buf);
 }
 
 static void dump(bool value, string &out) {
     out += value ? "true" : "false";
 }
 
-static void dump(const string &value, string &out) {
-    out += '"';
-    for (size_t i = 0; i < value.length(); i++) {
-        const char ch = value[i];
-        if (ch == '\\') {
-            out += "\\\\";
-        } else if (ch == '"') {
-            out += "\\\"";
-        } else if (ch == '\b') {
-            out += "\\b";
-        } else if (ch == '\f') {
-            out += "\\f";
-        } else if (ch == '\n') {
-            out += "\\n";
-        } else if (ch == '\r') {
-            out += "\\r";
-        } else if (ch == '\t') {
-            out += "\\t";
-        } else if (static_cast<uint8_t>(ch) <= 0x1f) {
-            char buf[8];
-            snprintf(buf, sizeof buf, "\\u%04x", ch);
-            out += buf;
-        } else if (static_cast<uint8_t>(ch) == 0xe2 && static_cast<uint8_t>(value[i+1]) == 0x80
-                   && static_cast<uint8_t>(value[i+2]) == 0xa8) {
-            out += "\\u2028";
-            i += 2;
-        } else if (static_cast<uint8_t>(ch) == 0xe2 && static_cast<uint8_t>(value[i+1]) == 0x80
-                   && static_cast<uint8_t>(value[i+2]) == 0xa9) {
-            out += "\\u2029";
-            i += 2;
-        } else {
-            out += ch;
-        }
-    }
-    out += '"';
+static void dump(bool value, size_t &out) {
+	out += value ? CONST_STR_LEN("true") : CONST_STR_LEN("false");
 }
 
-static void dump(const Json::array &values, string &out) {
-    bool first = true;
-    out += "[";
-    for (const auto &value : values) {
-        if (!first)
-            out += ", ";
-        value.dump(out);
-        first = false;
-    }
-    out += "]";
+#define DUMP_FROM_STRING_MAKE(VALUE_CONVERTER, OUT_TYPE)			\
+static void dump(const string &value, OUT_TYPE &out) {				\
+    plus(out, '"');													\
+    for (size_t i = 0; i < value.length(); i++) {					\
+        const char ch = value[i];									\
+        if (ch == '\\') {											\
+            out += VALUE_CONVERTER("\\\\");							\
+        } else if (ch == '"') {										\
+            out += VALUE_CONVERTER("\\\"");							\
+        } else if (ch == '\b') {									\
+            out += VALUE_CONVERTER("\\b");							\
+        } else if (ch == '\f') {									\
+            out += VALUE_CONVERTER("\\f");							\
+        } else if (ch == '\n') {									\
+            out += VALUE_CONVERTER("\\n");							\
+        } else if (ch == '\r') {									\
+            out += VALUE_CONVERTER("\\r");							\
+        } else if (ch == '\t') {									\
+            out += VALUE_CONVERTER("\\t");							\
+        } else if (static_cast<uint8_t>(ch) <= 0x1f) {				\
+            char buf[8];											\
+            snprintf(buf, sizeof buf, "\\u%04x", ch);				\
+            plus(out, buf);											\
+        } else if (	static_cast<uint8_t>(ch) == 0xe2 &&				\
+					static_cast<uint8_t>(value[i+1]) == 0x80 &&		\
+					static_cast<uint8_t>(value[i+2]) == 0xa8		\
+				  ) {												\
+            out += VALUE_CONVERTER("\\u2028");						\
+            i += 2;													\
+        } else if ( static_cast<uint8_t>(ch) == 0xe2 &&				\
+					static_cast<uint8_t>(value[i+1]) == 0x80 &&		\
+					static_cast<uint8_t>(value[i+2]) == 0xa9		\
+				  ) {												\
+            out += VALUE_CONVERTER("\\u2029");						\
+            i += 2;													\
+        } else {													\
+            plus(out, ch);											\
+        }															\
+    }																\
+	plus(out, '"');													\
 }
 
-static void dump(const Json::object &values, string &out) {
-    bool first = true;
-    out += "{";
-    for (const auto &kv : values) {
-        if (!first)
-            out += ", ";
-        dump(kv.first, out);
-        out += ": ";
-        kv.second.dump(out);
-        first = false;
-    }
-    out += "}";
+#define ECHO(ARG) ARG
+
+DUMP_FROM_STRING_MAKE(ECHO, std::string);
+DUMP_FROM_STRING_MAKE(CONST_STR_LEN, size_t);
+
+template<class OUT_TYPE>
+static void dump(const Json::array &values, OUT_TYPE &out) {
+	bool first = true;
+	plus(out, "[");
+	for (const auto &value : values) {
+		if (!first) plus(out, ", ");
+		value.dump(out);
+		first = false;
+	}
+	plus(out, "]");
+}
+
+template<class OUT_TYPE>
+static void dump(const Json::object &values, OUT_TYPE &out) {
+	bool first = true;
+	plus(out, "{");
+	for (const auto &kv : values) {
+		if (!first) { plus(out, ", "); }
+		plus(out, "\n");
+		dump(kv.first, out);
+		plus(out, ": ");
+		kv.second.dump(out);
+		first = false;
+	}
+	if (values.size()) {
+		plus(out, "\n");
+	}
+	plus(out, "}");
 }
 
 void Json::dump(string &out) const {
     m_ptr->dump(out);
+}
+
+void Json::dump(size_t &out) const {
+	m_ptr->dump(out);
 }
 
 /* * * * * * * * * * * * * * * * * * * *
@@ -140,6 +186,7 @@ protected:
 
     const T m_value;
     void dump(string &out) const override { json11::dump(m_value, out); }
+	void dump(size_t &out) const override { json11::dump(m_value, out); }
 };
 
 class JsonDouble final : public Value<Json::NUMBER, double> {
@@ -191,7 +238,7 @@ public:
 
 class JsonNull final : public Value<Json::NUL, std::nullptr_t> {
 public:
-    JsonNull() : Value(nullptr) {}
+    JsonNull() : Value(std::nullptr_t(nullptr)) {}
 };
 
 /* * * * * * * * * * * * * * * * * * * *
@@ -226,6 +273,7 @@ Json::Json() noexcept                  : m_ptr(statics().null) {}
 Json::Json(std::nullptr_t) noexcept    : m_ptr(statics().null) {}
 Json::Json(double value)               : m_ptr(make_shared<JsonDouble>(value)) {}
 Json::Json(int64_t value)              : m_ptr(make_shared<JsonInt64>(value)) {}
+Json::Json(int value)				   : m_ptr(make_shared<JsonInt64>(int64_t(value))) {}
 Json::Json(bool value)                 : m_ptr(value ? statics().t : statics().f) {}
 Json::Json(const string &value)        : m_ptr(make_shared<JsonString>(value)) {}
 Json::Json(string &&value)             : m_ptr(make_shared<JsonString>(move(value))) {}
@@ -563,7 +611,7 @@ struct JsonParser {
 
         if (str[i] != '.' && str[i] != 'e' && str[i] != 'E'
                 && (i - start_pos) <= static_cast<size_t>(std::numeric_limits<int64_t>::digits10)) {
-            return atoll(str.c_str() + start_pos);
+            return std::atoll(str.c_str() + start_pos);
         }
 
         // Decimal part

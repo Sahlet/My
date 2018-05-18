@@ -61,6 +61,7 @@ public:
     Json(std::nullptr_t) noexcept;  // NUL
     Json(double value);             // NUMBER
     Json(int64_t value);            // NUMBER
+	Json(int value);				// NUMBER
     Json(bool value);               // BOOL
     Json(const std::string &value); // STRING
     Json(std::string &&value);      // STRING
@@ -121,8 +122,13 @@ public:
 
     // Serialize.
     void dump(std::string &out) const;
+	void dump(size_t &out) const;
     std::string dump() const {
-        std::string out;
+		size_t size = 0;
+		dump(size);
+		if (!size) return std::string();
+		std::string out;
+		out.reserve(size);
         dump(out);
         return out;
     }
@@ -176,6 +182,7 @@ protected:
     virtual bool equals(const JsonValue * other) const = 0;
     virtual bool less(const JsonValue * other) const = 0;
     virtual void dump(std::string &out) const = 0;
+	virtual void dump(size_t &out) const = 0;
     virtual double number_value() const;
     virtual int64_t int_value() const;
     virtual bool bool_value() const;
