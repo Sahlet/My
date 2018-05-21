@@ -12,7 +12,7 @@
 
 #include <existence_tester.h>
 
-namespace events {
+namespace My {
 	template< typename FUNC >
 	class func_manager;
 
@@ -310,7 +310,6 @@ namespace events {
 			return value;
 		}
 	};
-}
+} //namespace My
 
-using namespace events;
 #endif /* PROPERTIES_H_ */

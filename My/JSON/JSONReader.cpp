@@ -1,5 +1,9 @@
+//JSONReader.cpp
+
 #include "stdafx.h"
 #include "JSONReader.h"
+
+namespace My {
 
 void JSONReader::on_finish() {}
 bool JSONReader::parse(const char* data) {
@@ -77,3 +81,5 @@ void convert(std::string & obj, const char* value) {
 	obj = std::string(value);
 }
 //----------------------------------------------------------
+
+} // namespace My

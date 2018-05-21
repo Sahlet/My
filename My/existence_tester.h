@@ -5,6 +5,8 @@
 
 #include <memory>
 
+namespace My {
+
 #define THIS_EXISTS (get_existence_tester())
 #define EXISTENCE_FLAG get_existence_tester = [__existence_tester__=get_existence_tester()](){ return __existence_tester__; }
 
@@ -48,3 +50,5 @@ public:
 };
 
 #endif /*__EXISTENCE_TESTER_H__*/
+
+} // namespace My

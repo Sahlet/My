@@ -1,3 +1,5 @@
+//JSONReader.h
+
 #ifndef JSONREADER_H_
 #define JSONREADER_H_
 
@@ -5,6 +7,8 @@
 
 #include <EnumSerializer.h>
 #include <Log.h>
+
+namespace My {
 
 struct JSONReader : public std::enable_shared_from_this< JSONReader > {
 	virtual bool parse(const char* data);
@@ -173,5 +177,7 @@ template<class T >
 std::enable_if_t< std::is_enum<T>::value, json11::Json > to_json(const T &obj) {
 	return json11::Json(to_string(obj));
 }
+
+} // namespace My
 
 #endif

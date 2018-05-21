@@ -10,6 +10,8 @@
 #include <map>
 #include <string>
 
+namespace My {
+
 class variant
 {
 
@@ -148,5 +150,6 @@ public:
 	}
 };
 
+} // namespace My
 
 #endif /* UTILS_VARIANT_H_ */
