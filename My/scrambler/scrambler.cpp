@@ -8,7 +8,7 @@ namespace
 {
 	auto const ShortDescription = "This program performs encrypting and decrypting of sources";
 	auto const DefaultPathValue = "./";
-	unsigned short const DefaultKeyLength = 32;
+	auto const KeyLength = 32;
 
 	struct ProgramOption
 	{
@@ -26,21 +26,26 @@ namespace
 		Help{"help", 'h'},
 		Encrypt{"encryp", 'e'},
 		Decrypt{"decrypt", 'd'},
+		GenKey{"gen-key", 'g'},
 		Key{"key", 'k'},
-		Path{"path", 'p'},
-		GenKey{"gen-key", 'g'};
+		Path{"path", 'p'};
 
 	std::string getUsageHelp()
 	{
-		auto usage = "usage: scrambler ";
+		auto usage = "usage: scrambler";
 		auto usageLen = strlen(usage);
 		std::stringstream sstream;
-		sstream << usage << "[--" << Help.m_cFullName << "]" << " [--" << Encrypt.m_cFullName << "]"
-			<< " [--" << Decrypt.m_cFullName << "]" << std::endl
-			<< std::string(std::max(0, int(usageLen) - 1), ' ')
+		sstream << usage
+			<< " [--" << Help.m_cFullName << "]"
+			<< " [--" << Encrypt.m_cFullName << "]"
+			<< " [--" << Decrypt.m_cFullName << "]"
+			<< " [--" << GenKey.m_cFullName << "]"
+			<< std::endl
+			<< std::string(usageLen, ' ')
 			<< " [--" << Key.m_cFullName << "=<" << Key.m_cFullName << ">]"
 			<< " [--" << Path.m_cFullName << "=<" << Path.m_cFullName << ">]"
-			<< " [--" << GenKey.m_cFullName << " <key length>]" << std::endl;
+			<< std::endl;
+
 		return sstream.str();
 	}
 
@@ -74,9 +79,9 @@ int main(int argc, char* argv[])
 		((Help.m_cFullName + std::string(",") + Help.m_cShortName).c_str(), "Help screen")
 		((Encrypt.m_cFullName + std::string(",") + Encrypt.m_cShortName).c_str(), "Indicates that sources should be encrypted")
 		((Decrypt.m_cFullName + std::string(",") + Decrypt.m_cShortName).c_str(), "Indicates that the encrypted file should be decrypted back to the sources")
+		((GenKey.m_cFullName + std::string(",") + GenKey.m_cShortName).c_str(), "Generates new key")
 		((Key.m_cFullName + std::string(",") + Key.m_cShortName).c_str(), boostPO::value<std::string>(), "Symmetric key for encrypting or decrypting")
-		((Path.m_cFullName + std::string(",") + Path.m_cShortName).c_str(), boostPO::value<std::string>()->default_value(DefaultPathValue), "Path where to execute encrypting or decrypting")
-		((GenKey.m_cFullName + std::string(",") + GenKey.m_cShortName).c_str(), boostPO::value<unsigned short>()->default_value(DefaultKeyLength), "Generates new keys (arg is length of key)");
+		((Path.m_cFullName + std::string(",") + Path.m_cShortName).c_str(), boostPO::value<std::string>()->default_value(DefaultPathValue), "Path where to execute encrypting or decrypting");
 
 		boostPO::variables_map vm;
 		boostPO::store(boostPO::parse_command_line(argc, argv, desc), vm);
