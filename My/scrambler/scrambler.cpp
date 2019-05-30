@@ -9,6 +9,8 @@ namespace
 	auto const ShortDescription = "This program performs encrypting and decrypting of sources";
 	auto const DefaultPathValue = "./";
 	unsigned short const DefaultKeyLength = 32;
+	unsigned short const MinKeyLength = 1;
+	unsigned short const MaxKeyLength = 256;
 
 	struct ProgramOption
 	{
@@ -100,8 +102,69 @@ namespace
 	}
 }
 
+namespace Encrypting
+{
+	auto const OpenSslAesSettings = "openssl aes-256-cbc -salt -a";
+
+	int encryptFile(const std::string& inPath, const std::string& outPath, const std::string& key)
+	{
+		std::stringstream sstream;
+		sstream << OpenSslAesSettings
+			<< " -e"
+			<< " -in " << inPath
+			<< " -out " << outPath
+			<< " -pass pass:" << key
+			<< " >>/dev/null 2>>/dev/null";
+		
+		return ::system(sstream.str().c_str());
+	}
+
+	int decryptFile(const std::string& inPath, const std::string& outPath, const std::string& key)
+	{
+		std::stringstream sstream;
+		sstream << OpenSslAesSettings
+			<< " -d"
+			<< " -in " << inPath
+			<< " -out " << outPath
+			<< " -pass pass:" << key
+			<< " >>/dev/null 2>>/dev/null";
+		
+		return ::system(sstream.str().c_str());
+	}
+
+	std::string genKey(unsigned int length)
+	{
+		std::string key(length, '\0');
+		
+		std::mt19937 mt((std::random_device())());
+		std::uniform_int_distribution<int> sbymolCategoryDistributor(0, 2);
+		std::array<std::uniform_int_distribution<char>, 3> categories
+		{
+			std::uniform_int_distribution<char>('0', '9'),
+			std::uniform_int_distribution<char>('a', 'z'),
+			std::uniform_int_distribution<char>('A', 'Z')
+		};
+
+		for (auto& ch : key)
+		{
+			ch = categories[sbymolCategoryDistributor(mt)](mt);
+		}
+
+		return std::move(key);
+	}
+}
+
 int main(int argc, char* argv[])
 {
+	int errCodeOptionsError = 1;
+	int errCodeKeyLengtError = 2;
+
+	auto onKeyLengthError = [&]()
+	{
+		std::cerr << "key length should be in range [" << MinKeyLength << ", " << MaxKeyLength << "]" << std::endl;
+		return errCodeKeyLengtError;
+	};
+
 	try
 	{
 		auto desc = getProgramOptionsDescription();
@@ -115,6 +178,15 @@ int main(int argc, char* argv[])
 			std::cout << ShortDescription << std::endl << std::endl
 				<< desc << std::endl
 				<< getWorkflowInfo() << std::endl;
+		}
+		else if (vm.count(GenKey))
+		{ 
+			unsigned short length = vm[GenKey].as<unsigned short>();
+			if (length < MinKeyLength || length > MaxKeyLength)
+			{
+				return onKeyLengthError();
+			}
+			std::cout << Encrypting::genKey(length) << std::endl;
 		}
 		else if (vm.count("age"))
 		{
@@ -133,6 +205,7 @@ int main(int argc, char* argv[])
 	{
 		std::cerr << ex.what() << std::endl
 			<< getUsageHelp();
+		return errCodeOptionsError;
 	}
 
 	return 0;
