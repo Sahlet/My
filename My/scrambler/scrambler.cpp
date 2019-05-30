@@ -17,6 +17,23 @@ namespace
 			m_cFullName(cFullName),
 			m_cShortName(cShortName)
 		{}
+
+	public:
+		operator const char*() const
+		{
+			return m_cFullName;
+		}
+
+		operator std::string() const
+		{
+			return m_cFullName;
+		}
+
+		std::string operator + (const std::string& right) const
+		{
+			return m_cFullName + right;
+		}
+
 	public:
 		const char* m_cFullName;
 		char m_cShortName;
@@ -32,15 +49,19 @@ namespace
 
 	std::string getUsageHelp()
 	{
-		auto usage = "usage: scrambler ";
+		auto usage = "usage: scrambler";
 		auto usageLen = strlen(usage);
 		std::stringstream sstream;
-		sstream << usage << "[--" << Help.m_cFullName << "]" << " [--" << Encrypt.m_cFullName << "]"
-			<< " [--" << Decrypt.m_cFullName << "]" << std::endl
+		sstream << usage
+			<< " [--" << Help << "]"
+			<< " [--" << Encrypt << "]"
+			<< " [--" << Decrypt << "]"
+			<< std::endl
 			<< std::string(std::max(0, int(usageLen) - 1), ' ')
-			<< " [--" << Key.m_cFullName << "=<" << Key.m_cFullName << ">]"
-			<< " [--" << Path.m_cFullName << "=<" << Path.m_cFullName << ">]"
-			<< " [--" << GenKey.m_cFullName << " <key length>]" << std::endl;
+			<< " [--" << Key << "=<" << Key << ">]"
+			<< " [--" << Path << "=<" << Path << ">]"
+			<< " [--" << GenKey << " <key length>]"
+			<< std::endl;
 		return sstream.str();
 	}
 
@@ -58,10 +79,24 @@ namespace
 			<< " and converts it to sources files into folder" << std::endl
 			<< " <path>/src_encrypt/src_YYYY-MM-DD-HH-MM-SS/" << std::endl;
 
-		sstream << "-if you need more security - use '" << Key.m_cFullName << "' option;" << std::endl
-			<< " to generate new keys use '" << GenKey.m_cFullName << "' option" << std::endl;
+		sstream << "-if you need more security - use '" << Key << "' option;" << std::endl
+			<< " to generate new key use '" << GenKey << "' option" << std::endl;
 
 		return sstream.str();
+	}
+
+	boostPO::options_description getProgramOptionsDescription()
+	{
+		boostPO::options_description desc("Options");
+		desc.add_options()
+		((Help + "," + Help.m_cShortName).c_str(), "Help screen")
+		((Encrypt + "," + Encrypt.m_cShortName).c_str(), "Indicates that sources should be encrypted")
+		((Decrypt + "," + Decrypt.m_cShortName).c_str(), "Indicates that the encrypted file should be decrypted back to the sources")
+		((Key + "," + Key.m_cShortName).c_str(), boostPO::value<std::string>(), "Symmetric key for encrypting or decrypting")
+		((Path + "," + Path.m_cShortName).c_str(), boostPO::value<std::string>()->default_value(DefaultPathValue), "Path where to execute encrypting or decrypting")
+		((GenKey + "," + GenKey.m_cShortName).c_str(), boostPO::value<unsigned short>()->implicit_value(DefaultKeyLength), "Generates new key (arg is length of key)");
+
+		return std::move(desc);
 	}
 }
 
@@ -69,20 +104,13 @@ int main(int argc, char* argv[])
 {
 	try
 	{
-		boostPO::options_description desc("Options");
-		desc.add_options()
-		((Help.m_cFullName + std::string(",") + Help.m_cShortName).c_str(), "Help screen")
-		((Encrypt.m_cFullName + std::string(",") + Encrypt.m_cShortName).c_str(), "Indicates that sources should be encrypted")
-		((Decrypt.m_cFullName + std::string(",") + Decrypt.m_cShortName).c_str(), "Indicates that the encrypted file should be decrypted back to the sources")
-		((Key.m_cFullName + std::string(",") + Key.m_cShortName).c_str(), boostPO::value<std::string>(), "Symmetric key for encrypting or decrypting")
-		((Path.m_cFullName + std::string(",") + Path.m_cShortName).c_str(), boostPO::value<std::string>()->default_value(DefaultPathValue), "Path where to execute encrypting or decrypting")
-		((GenKey.m_cFullName + std::string(",") + GenKey.m_cShortName).c_str(), boostPO::value<unsigned short>()->default_value(DefaultKeyLength), "Generates new keys (arg is length of key)");
+		auto desc = getProgramOptionsDescription();
 
 		boostPO::variables_map vm;
 		boostPO::store(boostPO::parse_command_line(argc, argv, desc), vm);
 		boostPO::notify(vm);
 
-		if (vm.count("help"))
+		if (vm.count(Help))
 		{
 			std::cout << ShortDescription << std::endl << std::endl
 				<< desc << std::endl
