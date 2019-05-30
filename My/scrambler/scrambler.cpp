@@ -154,6 +154,12 @@ namespace Encrypting
 	}
 }
 
+namespace Zipping
+{
+	//cd src; zip -r -q ../srcFolder.zip ./*; cd ..
+	//unzip -o -q srcFolder.zip -d unzipedFoldef
+}
+
 int main(int argc, char* argv[])
 {
 	int errCodeOptionsError = 1;
