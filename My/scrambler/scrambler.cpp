@@ -9,6 +9,8 @@ namespace
 	auto const ShortDescription = "This program performs encrypting and decrypting of sources";
 	auto const DefaultPathValue = "./";
 	unsigned short const DefaultKeyLength = 32;
+	unsigned short const MinKeyLength = 1;
+	unsigned short const MaxKeyLength = 256;
 
 	struct ProgramOption
 	{
@@ -102,6 +104,15 @@ namespace
 
 int main(int argc, char* argv[])
 {
+	int errCodeOptionsError = 1;
+	int errCodeKeyLengtError = 2;
+
+	auto onKeyLengthError = [&]()
+	{
+		std::cerr << "key length should be in range [" << MinKeyLength << ", " << MaxKeyLength << "]" << std::endl;
+		return errCodeKeyLengtError;
+	};
+
 	try
 	{
 		auto desc = getProgramOptionsDescription();
@@ -115,6 +126,15 @@ int main(int argc, char* argv[])
 			std::cout << ShortDescription << std::endl << std::endl
 				<< desc << std::endl
 				<< getWorkflowInfo() << std::endl;
+		}
+		else if (vm.count(GenKey))
+		{
+			unsigned short length = vm[GenKey].as<unsigned short>();
+			if (length < MinKeyLength || length > MaxKeyLength)
+			{
+				return onKeyLengthError();
+			}
+			std::cout << Encrypting::genKey(length) << std::endl;
 		}
 		else if (vm.count("age"))
 		{
@@ -133,6 +153,7 @@ int main(int argc, char* argv[])
 	{
 		std::cerr << ex.what() << std::endl
 			<< getUsageHelp();
+		return errCodeOptionsError;
 	}
 
 	return 0;
