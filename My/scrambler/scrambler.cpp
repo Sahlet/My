@@ -426,7 +426,7 @@ int main(int argc, char* argv[])
 					});
 
 					std::cout << "encryption is DONE! encrypted data here:" << std::endl
-						<< path/CryptDirName/CryptFileName;
+						<< path/CryptDirName/CryptFileName << std::endl;
 				}
 
 				if (vm.count(Decrypt))
@@ -459,7 +459,7 @@ int main(int argc, char* argv[])
 					});
 
 					std::cout << "decryption is DONE! decrypted data here:" << std::endl
-						<< destFolder/SrcDirName;
+						<< destFolder/SrcDirName << std::endl;
 				}
 
 				return 0;
