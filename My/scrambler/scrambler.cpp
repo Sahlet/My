@@ -28,6 +28,8 @@ namespace
 	auto const CryptFileName = "src.crypt";
 	auto const CryptDirName = "crypt";
 	auto const CryptStorageDirName = "crypt_storage";
+	auto const ZipFileName = "src.zip";
+	auto const ScramblTempDirNamePrefix = "scrambler";
 
 	unsigned short const DefaultKeyLength = 32;
 	unsigned short const MinKeyLength = 1;
@@ -229,7 +231,7 @@ namespace Encrypting
 {
 	auto const OpenSslAesSettings = "openssl aes-256-cbc -salt -a";
 
-	int encryptFile(const std::string& inPath, const std::string& outPath, const std::string& key)
+	int encryptFile(const boostFS::path& inPath, const boostFS::path& outPath, const std::string& key)
 	{
 		std::stringstream sstream;
 		sstream << OpenSslAesSettings
@@ -242,7 +244,7 @@ namespace Encrypting
 		return ::system(sstream.str().c_str());
 	}
 
-	int decryptFile(const std::string& inPath, const std::string& outPath, const std::string& key)
+	int decryptFile(const boostFS::path& inPath, const boostFS::path& outPath, const std::string& key)
 	{
 		std::stringstream sstream;
 		sstream << OpenSslAesSettings
@@ -281,7 +283,7 @@ namespace Encrypting
 
 namespace Zipping
 {
-	int zip(const std::string& src, const std::string& zipFile)
+	int zip(const boostFS::path& src, const boostFS::path& zipFile)
 	{
 		std::stringstream sstream;
 		sstream << "zip -r -q"
@@ -292,7 +294,7 @@ namespace Zipping
 		return ::system(sstream.str().c_str());
 	}
 
-	int unzip(const std::string& zipFile, const std::string& placePath = "./")
+	int unzip(const boostFS::path& zipFile, const boostFS::path& placePath = "./")
 	{
 		std::stringstream sstream;
 		sstream << "unzip -o -q"
@@ -306,9 +308,6 @@ namespace Zipping
 
 namespace MainFunctionality
 {
-	//ln -s src srcLink
-	//boost::filesystem::temp_directory_path()
-	//boost::filesystem::unique_path()
 	//boost::filesystem::create_symlink
 
 	void scramble(const boostFS::path& src, const boostFS::path& cryptFile, const std::string& key)
@@ -318,7 +317,29 @@ namespace MainFunctionality
 			throw std::runtime_error("invalid path '" + src.string() + "'");
 		}
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+		boostFS::path tmpDir;
+		do
+		{
+			auto scramblTempDirName = ScramblTempDirNamePrefix + ("_" + boostFS::unique_path().string());
+			tmpDir = boostFS::temp_directory_path()/scramblTempDirName;
+		} while (boostFS::exists(tmpDir));
+
+		boostFS::create_directories(tmpDir);
+
+		if(Zipping::zip(src, tmpDir/ZipFileName) != 0)
+		{
+			throw std::runtime_error("zipping failed");
+		}
+
+		if(Encrypting::encryptFile(tmpDir/ZipFileName, cryptFile, key) != 0)
+		{
+			throw std::runtime_error("encrypting failed");
+		}
+
+		My::Guard tmpDirGuargd([&]
+		{
+			boostFS::remove_all(tmpDir);
+		});
 	}
 
 	void unscramble(const boostFS::path& cryptFile, const boostFS::path& deploymentDir, const std::string& key)
@@ -333,7 +354,29 @@ namespace MainFunctionality
 			throw std::runtime_error("there is no deployment directory '" + deploymentDir.string() + "'");
 		}
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+		boostFS::path tmpDir;
+		do
+		{
+			auto scramblTempDirName = ScramblTempDirNamePrefix + ("_" + boostFS::unique_path().string());
+			tmpDir = boostFS::temp_directory_path()/scramblTempDirName;
+		} while (boostFS::exists(tmpDir));
+
+		boostFS::create_directories(tmpDir);
+
+		if(Encrypting::decryptFile(cryptFile, tmpDir/ZipFileName, key) != 0)
+		{
+			throw std::runtime_error("decrypting failed");
+		}
+
+		if(Zipping::unzip(tmpDir/ZipFileName, deploymentDir) != 0)
+		{
+			throw std::runtime_error("unzipping failed");
+		}
+
+		My::Guard tmpDirGuargd([&]
+		{
+			boostFS::remove_all(tmpDir);
+		});
 	}
 } // namespace MainFunctionality
 
@@ -410,6 +453,8 @@ int main(int argc, char* argv[])
 							boostFS::remove_all(destFolder);
 						}
 
+						boostFS::create_directories(destFolder);
+
 						MainFunctionality::scramble(path/SrcDirName, destFolder/CryptFileName, key);
 
 						if (!boostFS::exists(destFolder/CryptFileName))
@@ -422,7 +467,9 @@ int main(int argc, char* argv[])
 							boostFS::remove_all(path/CryptDirName/CryptFileName);
 						}
 
-						boostFS::create_symlink(destFolder/CryptFileName, path/CryptDirName/CryptFileName);
+						boostFS::create_directories(path/CryptDirName);
+
+						boostFS::create_symlink(boostFS::system_complete(destFolder/CryptFileName), path/CryptDirName/CryptFileName);
 					});
 
 					std::cout << "encryption is DONE! encrypted data here:" << std::endl
@@ -449,6 +496,8 @@ int main(int argc, char* argv[])
 						{
 							boostFS::remove_all(destFolder);
 						}
+
+						boostFS::create_directories(destFolder);
 
 						MainFunctionality::unscramble(path/CryptDirName/CryptFileName, destFolder, key);
 
