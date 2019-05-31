@@ -8,6 +8,7 @@ if you want run it on Windows, you should have these utilities:
 #include <sstream>
 #include <functional>
 #include <future>
+#include <atomic>
 #include <list>
 #include <vector>
 #include <boost/program_options.hpp>
@@ -182,21 +183,16 @@ namespace
 			return;
 		}
 
-		auto future = std::async(std::launch::async, task);
-		
-		My::Guard finally([&]()
-		{
-			future.get();
-		});
+		std::atomic<bool> taskIsFinished(false);
 
-		//accompany
+		auto accompany = [&]()
 		{
 			std::list<char> symblos{ '-', '\\', '|', '/' };
 			auto iter = symblos.begin();
 
 			std::chrono::system_clock::time_point start;
 
-			while (!(future.wait_for(std::chrono::seconds(0)) == std::future_status::ready))
+			while (!taskIsFinished.load(std::memory_order_consume))
 			{
 				auto now = std::chrono::system_clock::now();
 				if (now - start >= AccompanyWithConsoleProcessingDelay)
@@ -215,7 +211,17 @@ namespace
 
 			std::cout << "\r \r";
 			std::cout.flush();
-		}
+		};
+
+		auto future = std::async(std::launch::async, accompany);
+
+		My::Guard finally([&]()
+		{
+			taskIsFinished.store(true, std::memory_order_release);
+			future.get();
+		});
+
+		task();
 	}
 } // namespace
 
