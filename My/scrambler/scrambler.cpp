@@ -1,16 +1,43 @@
+/*
+if you want run it on Windows, you should have these utilities:
+ -openssl for Windows http://gnuwin32.sourceforge.net/packages/openssl.htm
+ -zip unzip utilities for Windows http://stahlworks.com/dev/index.php?tool=zipunzip
+*/
+
 #include <iostream>
-#include <boost/program_options.hpp>
 #include <sstream>
+#include <functional>
+#include <future>
+#include <list>
+#include <vector>
+#include <boost/program_options.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <My/Guard.h>
 
 namespace boostPO = boost::program_options;
+namespace boostFS = boost::filesystem;
 
 namespace
 {
 	auto const ShortDescription = "This program performs encrypting and decrypting of sources";
 	auto const DefaultPathValue = "./";
+	auto const SrcDirName = "src";
+	auto const SrcStorageDirName = "src_storage";
+	auto const CryptFileName = "src.crypt";
+	auto const CryptDirName = "crypt";
+	auto const CryptStorageDirName = "crypt_storage";
+
 	unsigned short const DefaultKeyLength = 32;
 	unsigned short const MinKeyLength = 1;
 	unsigned short const MaxKeyLength = 256;
+	std::chrono::milliseconds AccompanyWithConsoleProcessingDelay(200); //ms
+
+	int errCodeOptionsError = 1;
+	int errCodeKeyLengtError = 2;
+	int errCodeSomeError = 3;
+	int errCodeIncompatibleOptionsError = 4;
+	int errCodeIncorrectDirectoryStructError = 5;
+	int errCodeNoCryptFileError = 6;
 
 	struct ProgramOption
 	{
@@ -59,7 +86,7 @@ namespace
 			<< " [--" << Encrypt << "]"
 			<< " [--" << Decrypt << "]"
 			<< std::endl
-			<< std::string(std::max(0, int(usageLen) - 1), ' ')
+			<< std::string(usageLen, ' ')
 			<< " [--" << Key << "=<" << Key << ">]"
 			<< " [--" << Path << "=<" << Path << ">]"
 			<< " [--" << GenKey << " <key length>]"
@@ -73,13 +100,13 @@ namespace
 
 		sstream << "Workflow info:" << std::endl;
 
-		sstream << "-for encryping, the program takes contents of folder <path>/src/" << std::endl
-			<< " and converts it into encrypted file which puts into folders <path>/crypt/" << std::endl
-			<< " and <path>/crypt_storage/crypt_YYYY-MM-DD-HH-MM-SS/" << std::endl;
+		sstream << "-for encryping, the program takes folder <path>/" << SrcDirName << "/" << std::endl
+			<< " and converts it into encrypted file which puts into folders <path>/" << CryptDirName << "/" << std::endl
+			<< " and <path>/" << CryptStorageDirName << "/crypt_YYYY-MM-DD-HH-MM-SS/" << std::endl;
 
-		sstream << "-for decryping, the program takes encrypted file from the folder <path>/crypt/" << std::endl
+		sstream << "-for decryping, the program takes encrypted file from the folder <path>/" << CryptDirName << "/" << std::endl
 			<< " and converts it to sources files into folder" << std::endl
-			<< " <path>/src_encrypt/src_YYYY-MM-DD-HH-MM-SS/" << std::endl;
+			<< " <path>/" << SrcStorageDirName << "/src_YYYY-MM-DD-HH-MM-SS/" << std::endl;
 
 		sstream << "-if you need more security - use '" << Key << "' option;" << std::endl
 			<< " to generate new key use '" << GenKey << "' option" << std::endl;
@@ -95,12 +122,81 @@ namespace
 		((Encrypt + "," + Encrypt.m_cShortName).c_str(), "Indicates that sources should be encrypted")
 		((Decrypt + "," + Decrypt.m_cShortName).c_str(), "Indicates that the encrypted file should be decrypted back to the sources")
 		((Key + "," + Key.m_cShortName).c_str(), boostPO::value<std::string>(), "Symmetric key for encrypting or decrypting")
-		((Path + "," + Path.m_cShortName).c_str(), boostPO::value<std::string>()->default_value(DefaultPathValue), "Path where to execute encrypting or decrypting")
+		((Path + "," + Path.m_cShortName).c_str(), boostPO::value<std::string>(), "Path where to execute encrypting or decrypting")
 		((GenKey + "," + GenKey.m_cShortName).c_str(), boostPO::value<unsigned short>()->implicit_value(DefaultKeyLength), "Generates new key (arg is length of key)");
 
 		return std::move(desc);
 	}
-}
+
+	int onIncompatibleOptionsError()
+	{
+		std::cerr << "incompatible options" << std::endl
+			<< getUsageHelp();
+		return errCodeIncompatibleOptionsError;
+	}
+
+	int onKeyLengthError()
+	{
+		std::cerr << "key length should be in range [" << MinKeyLength << ", " << MaxKeyLength << "]" << std::endl;
+		return errCodeKeyLengtError;
+	}
+
+	int onIncorrectDirectoryStructError()
+	{
+		std::cerr << "incorrect directory structure;" << std::endl
+			<<"use '" << Help << "' option for more information" << std::endl;
+		return errCodeIncorrectDirectoryStructError;
+	}
+
+	int onNoCryptFileError()
+	{
+		std::cerr << "'" << CryptFileName << "' file is not in '" << CryptDirName << "' directory" << std::endl;
+		return errCodeNoCryptFileError;
+	}
+
+	void accompanyWithConsoleProcessing(std::function<void()> task)
+	{
+		if (!task)
+		{
+			return;
+		}
+
+		auto future = std::async(std::launch::async, task);
+		
+		My::Guard finally([&]()
+		{
+			future.get();
+		});
+
+		//accompany
+		{
+			std::list<char> symblos{ '-', '\\', '|', '/' };
+			auto iter = symblos.begin();
+
+			std::chrono::system_clock::time_point start;
+
+			while (!(future.wait_for(std::chrono::seconds(0)) == std::future_status::ready))
+			{
+				auto now = std::chrono::system_clock::now();
+				if (now - start >= AccompanyWithConsoleProcessingDelay)
+				{
+					start = now;
+					std::cout << '\r' << *iter;
+					std::cout.flush();
+					if (++iter == symblos.end())
+					{
+						iter = symblos.begin();
+					}
+				}
+
+				std::this_thread::yield();
+			}
+
+			std::cout << "\r \r";
+			std::cout.flush();
+		}
+	}
+} // namespace
 
 namespace Encrypting
 {
@@ -152,25 +248,66 @@ namespace Encrypting
 
 		return std::move(key);
 	}
-}
+
+	std::string getDefaultKey();
+} // namespace Encrypting
 
 namespace Zipping
 {
-	//cd src; zip -r -q ../srcFolder.zip ./*; cd ..
-	//unzip -o -q srcFolder.zip -d unzipedFoldef
-}
+	int zip(const std::string& src, const std::string& zipFile)
+	{
+		std::stringstream sstream;
+		sstream << "zip -r -q"
+			<< " " << zipFile
+			<< " " << src
+			<< " >>/dev/null 2>>/dev/null";
+		
+		return ::system(sstream.str().c_str());
+	}
+
+	int unzip(const std::string& zipFile, const std::string& placePath = "./")
+	{
+		std::stringstream sstream;
+		sstream << "unzip -o -q"
+			<< " " << zipFile
+			<< " -d" << placePath
+			<< " >>/dev/null 2>>/dev/null";
+		
+		return ::system(sstream.str().c_str());
+	}
+} // namespace Zipping
+
+namespace MainFunctionality
+{
+	//ln -s src srcLink
+	//boost::filesystem::temp_directory_path()
+	//boost::filesystem::unique_path()
+	//boost::filesystem::create_symlink
+
+	void scramble(const std::string& src, const std::string& cryptFile)
+	{
+		if (!boostFS::exists(src))
+		{
+			throw std::runtime_error("invalid path '" + src + "'");
+		}
+	}
+
+	void unscramble(const std::string& cryptFile, const std::string& deploymentDir)
+	{
+		if (!boostFS::exists(cryptFile))
+		{
+			throw std::runtime_error("there is no crypt file '" + cryptFile + "'");
+		}
+
+		if (!boostFS::is_directory(deploymentDir))
+		{
+			throw std::runtime_error("there is no deployment directory '" + deploymentDir + "'");
+		}
+	}
+} // namespace MainFunctionality
 
 int main(int argc, char* argv[])
 {
-	int errCodeOptionsError = 1;
-	int errCodeKeyLengtError = 2;
-
-	auto onKeyLengthError = [&]()
-	{
-		std::cerr << "key length should be in range [" << MinKeyLength << ", " << MaxKeyLength << "]" << std::endl;
-		return errCodeKeyLengtError;
-	};
-
 	try
 	{
 		auto desc = getProgramOptionsDescription();
@@ -181,33 +318,109 @@ int main(int argc, char* argv[])
 
 		if (vm.count(Help))
 		{
+			if (vm.size() > 1)
+			{
+				return onIncompatibleOptionsError();
+			}
+
 			std::cout << ShortDescription << std::endl << std::endl
 				<< desc << std::endl
 				<< getWorkflowInfo() << std::endl;
 		}
 		else if (vm.count(GenKey))
-		{ 
+		{
+			if (vm.size() > 1)
+			{
+				return onIncompatibleOptionsError();
+			}
+
 			unsigned short length = vm[GenKey].as<unsigned short>();
 			if (length < MinKeyLength || length > MaxKeyLength)
 			{
 				return onKeyLengthError();
 			}
+
 			std::cout << Encrypting::genKey(length) << std::endl;
+			return 0;
 		}
-		else if (vm.count("age"))
+		else if (vm.count(Encrypt) || vm.count(Decrypt))
 		{
-			std::cout << "Age: " << vm["age"].as<int>() << '\n';
+			if(vm.count(Encrypt) && vm.count(Decrypt))
+			{
+				return onIncompatibleOptionsError();
+			}
+
+			std::string key = vm.count(Key) ? vm[Key].as<std::string>() : Encrypting::getDefaultKey();
+			if (key.size() < MinKeyLength || key.size() > MaxKeyLength)
+			{
+				return onKeyLengthError();
+			}
+
+			boostFS::path path = vm.count(Path) ? vm[Path].as<std::string>() : DefaultPathValue;
+			if (!boostFS::is_directory(path))
+			{
+				return onIncorrectDirectoryStructError();
+			}
+
+			try
+			{
+				if (vm.count(Encrypt))
+				{
+					if (!boostFS::is_directory(path/SrcDirName))
+					{
+						return onIncorrectDirectoryStructError();
+					}
+
+					accompanyWithConsoleProcessing([&]()
+					{
+						std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+						//scramble();
+					});
+
+					std::cout << "encryption is DONE!" << std::endl;
+				}
+
+				if (vm.count(Decrypt))
+				{
+					if (!boostFS::is_directory(path/CryptDirName))
+					{
+						return onIncorrectDirectoryStructError();
+					}
+
+					if (!boostFS::exists(path/CryptDirName/CryptFileName))
+					{
+						return onNoCryptFileError();
+					}
+
+					accompanyWithConsoleProcessing([&]()
+					{
+						//unscramble();
+					});
+
+					std::cout << "decryption is DONE!" << std::endl;
+				}
+
+				return 0;
+			}
+			catch (const std::exception& ex)
+			{
+				std::cerr << ex.what() << std::endl;
+				return errCodeSomeError;
+			}
+
+			return 0;
 		}
-		else if (vm.count("pi"))
+		else if (!vm.empty())
 		{
-			std::cout << "Pi: " << vm["pi"].as<float>() << '\n';
+			return onIncompatibleOptionsError();
 		}
 		else
 		{
 			std::cout << getUsageHelp();
+			return 0;
 		}
 	}
-	catch (const boostPO::error &ex)
+	catch (const boostPO::error& ex)
 	{
 		std::cerr << ex.what() << std::endl
 			<< getUsageHelp();
