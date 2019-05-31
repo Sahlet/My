@@ -103,11 +103,11 @@ namespace
 
 		sstream << "-for encryping, the program takes folder <path>/" << SrcDirName << "/" << std::endl
 			<< " and converts it into encrypted file which puts into folders <path>/" << CryptDirName << "/" << std::endl
-			<< " and <path>/" << CryptStorageDirName << "/crypt_" << LexicographicalTimeFormat << "/" << std::endl;
+			<< " and <path>/" << CryptStorageDirName << "/" << CryptDirName << "_" << LexicographicalTimeFormat << "/" << std::endl;
 
 		sstream << "-for decryping, the program takes encrypted file from the folder <path>/" << CryptDirName << "/" << std::endl
 			<< " and converts it to sources files into folder" << std::endl
-			<< " <path>/" << SrcStorageDirName << "/src_" << LexicographicalTimeFormat << "/" << std::endl;
+			<< " <path>/" << SrcStorageDirName << "/" << SrcDirName << "_" << LexicographicalTimeFormat << "/" << std::endl;
 
 		sstream << "-if you need more security - use '" << Key << "' option;" << std::endl
 			<< " to generate new key use '" << GenKey << "' option" << std::endl;
@@ -305,25 +305,29 @@ namespace MainFunctionality
 	//boost::filesystem::unique_path()
 	//boost::filesystem::create_symlink
 
-	void scramble(const std::string& src, const std::string& cryptFile)
+	void scramble(const boostFS::path& src, const boostFS::path& cryptFile, const std::string& key)
 	{
 		if (!boostFS::exists(src))
 		{
-			throw std::runtime_error("invalid path '" + src + "'");
+			throw std::runtime_error("invalid path '" + src.string() + "'");
 		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 	}
 
-	void unscramble(const std::string& cryptFile, const std::string& deploymentDir)
+	void unscramble(const boostFS::path& cryptFile, const boostFS::path& deploymentDir, const std::string& key)
 	{
 		if (!boostFS::exists(cryptFile))
 		{
-			throw std::runtime_error("there is no crypt file '" + cryptFile + "'");
+			throw std::runtime_error("there is no crypt file '" + cryptFile.string() + "'");
 		}
 
 		if (!boostFS::is_directory(deploymentDir))
 		{
-			throw std::runtime_error("there is no deployment directory '" + deploymentDir + "'");
+			throw std::runtime_error("there is no deployment directory '" + deploymentDir.string() + "'");
 		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 	}
 } // namespace MainFunctionality
 
@@ -394,11 +398,29 @@ int main(int argc, char* argv[])
 
 					accompanyWithConsoleProcessing([&]()
 					{
-						std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-						//scramble();
+						auto destFolder = path/CryptStorageDirName/(CryptDirName + ("_" + toLexicographicalTimeFormat(std::chrono::system_clock::now())));
+						if (boostFS::exists(destFolder))
+						{
+							boostFS::remove_all(destFolder);
+						}
+
+						MainFunctionality::scramble(path/SrcDirName, destFolder/CryptFileName, key);
+
+						if (!boostFS::exists(destFolder/CryptFileName))
+						{
+							throw std::runtime_error("scrambling failed");
+						}
+
+						if (boostFS::exists(path/CryptDirName/CryptFileName))
+						{
+							boostFS::remove_all(path/CryptDirName/CryptFileName);
+						}
+
+						boostFS::create_symlink(destFolder/CryptFileName, path/CryptDirName/CryptFileName);
 					});
 
-					std::cout << "encryption is DONE!" << std::endl;
+					std::cout << "encryption is DONE! encrypted data here:" << std::endl
+						<< path/CryptDirName/CryptFileName;
 				}
 
 				if (vm.count(Decrypt))
@@ -413,12 +435,25 @@ int main(int argc, char* argv[])
 						return onNoCryptFileError();
 					}
 
+					auto destFolder = path/SrcStorageDirName/(SrcDirName + ("_" + toLexicographicalTimeFormat(std::chrono::system_clock::now())));
+
 					accompanyWithConsoleProcessing([&]()
 					{
-						//unscramble();
+						if (boostFS::exists(destFolder))
+						{
+							boostFS::remove_all(destFolder);
+						}
+
+						MainFunctionality::unscramble(path/CryptDirName/CryptFileName, destFolder, key);
+
+						if (!boostFS::exists(destFolder/SrcDirName))
+						{
+							throw std::runtime_error("unscrambling failed");
+						}
 					});
 
-					std::cout << "decryption is DONE!" << std::endl;
+					std::cout << "decryption is DONE! decrypted data here:" << std::endl
+						<< destFolder/SrcDirName;
 				}
 
 				return 0;
