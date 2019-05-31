@@ -21,6 +21,7 @@ namespace
 {
 	auto const ShortDescription = "This program performs encrypting and decrypting of sources";
 	auto const DefaultPathValue = "./";
+	auto const LexicographicalTimeFormat = "YYYY-MM-DD-HH-MM-SS";
 	auto const SrcDirName = "src";
 	auto const SrcStorageDirName = "src_storage";
 	auto const CryptFileName = "src.crypt";
@@ -102,11 +103,11 @@ namespace
 
 		sstream << "-for encryping, the program takes folder <path>/" << SrcDirName << "/" << std::endl
 			<< " and converts it into encrypted file which puts into folders <path>/" << CryptDirName << "/" << std::endl
-			<< " and <path>/" << CryptStorageDirName << "/crypt_YYYY-MM-DD-HH-MM-SS/" << std::endl;
+			<< " and <path>/" << CryptStorageDirName << "/crypt_" << LexicographicalTimeFormat << "/" << std::endl;
 
 		sstream << "-for decryping, the program takes encrypted file from the folder <path>/" << CryptDirName << "/" << std::endl
 			<< " and converts it to sources files into folder" << std::endl
-			<< " <path>/" << SrcStorageDirName << "/src_YYYY-MM-DD-HH-MM-SS/" << std::endl;
+			<< " <path>/" << SrcStorageDirName << "/src_" << LexicographicalTimeFormat << "/" << std::endl;
 
 		sstream << "-if you need more security - use '" << Key << "' option;" << std::endl
 			<< " to generate new key use '" << GenKey << "' option" << std::endl;
@@ -152,6 +153,26 @@ namespace
 	{
 		std::cerr << "'" << CryptFileName << "' file is not in '" << CryptDirName << "' directory" << std::endl;
 		return errCodeNoCryptFileError;
+	}
+
+	std::string toLexicographicalTimeFormat(const std::chrono::system_clock::time_point& timePoint)
+	{
+		time_t tt = std::chrono::system_clock::to_time_t(timePoint);
+		
+		tm utc_tm = *gmtime(&tt);
+
+		char buf[200];
+		sprintf(buf,
+			"%.4d-%.2d-%.2d-%.2d-%.2d-%.2d",
+			utc_tm.tm_year + 1900,
+			utc_tm.tm_mon + 1,
+			utc_tm.tm_mday,
+			utc_tm.tm_hour,
+			utc_tm.tm_min,
+			utc_tm.tm_sec
+		);
+
+		return buf;
 	}
 
 	void accompanyWithConsoleProcessing(std::function<void()> task)
