@@ -344,9 +344,18 @@ namespace MainFunctionality
 		boostFS::create_directories(tmpDir/srcDirNameWithTimestamp);
 		boostFS::create_symlink(boostFS::system_complete(path/SrcDirName), tmpDir/srcDirNameWithTimestamp/SrcDirName);
 
-		if(Zipping::zip(tmpDir/srcDirNameWithTimestamp, tmpDir/ZipFileName) != 0)
 		{
-			throw std::runtime_error("zipping failed");
+			auto curDir = boostFS::current_path();
+			::chdir(tmpDir.string().c_str());
+			My::Guard curDirGuard([&]()
+			{
+				::chdir(curDir.string().c_str());
+			});
+
+			if(Zipping::zip(srcDirNameWithTimestamp, ZipFileName) != 0)
+			{
+				throw std::runtime_error("zipping failed");
+			}
 		}
 
 		auto destFolder = path/CryptStorageDirName/cryptDirNameWithTimestamp;
@@ -362,21 +371,23 @@ namespace MainFunctionality
 			throw std::runtime_error("encrypting failed");
 		}
 
-		if (boostFS::exists(path/CryptDirName/CryptFileName))
+		auto destDataPath = path/CryptDirName/CryptFileName;
+
+		if (boostFS::exists(destDataPath))
 		{
-			boostFS::remove_all(path/CryptDirName/CryptFileName);
+			boostFS::remove_all(destDataPath);
 		}
 
 		boostFS::create_directories(path/CryptDirName);
 
-		boostFS::create_symlink(boostFS::system_complete(destFolder/CryptFileName), path/CryptDirName/CryptFileName);
+		boostFS::create_symlink(boostFS::system_complete(destFolder/CryptFileName), destDataPath);
 
-		if (!boostFS::exists(path/CryptDirName/CryptFileName))
+		if (!boostFS::exists(destDataPath))
 		{
 			throw std::runtime_error("scrambling failed");
 		}
 
-		encryptedDataPath = path/CryptDirName/CryptFileName;
+		encryptedDataPath = destDataPath;
 	}
 
 	void unscramble(const boostFS::path& path, const std::string& key, boostFS::path& decryptedDataPath)
@@ -440,6 +451,11 @@ namespace MainFunctionality
 		}
 
 		boostFS::rename(tmpDir/zipDeploymentDirName/srcDirNameWithTimestamp, destDataPath);
+
+		if (!boostFS::exists(destDataPath))
+		{
+			throw std::runtime_error("unscrambling failed");
+		}
 
 		decryptedDataPath = destDataPath;
 	}
