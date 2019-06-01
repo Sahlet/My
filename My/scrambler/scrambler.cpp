@@ -6,6 +6,7 @@ if you want run it on Windows, you should have these utilities:
 */
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <functional>
 #include <future>
@@ -336,19 +337,19 @@ namespace MainFunctionality
 			boostFS::remove_all(tmpDir);
 		});
 
-		std::string Timestamp = toLexicographicalTimeFormat(std::chrono::system_clock::now());
-		std::string SrcDirNameWithTimestamp = (SrcDirName + ("_" + Timestamp));
-		std::string CryptDirNameWithTimestamp = (CryptDirName + ("_" + Timestamp));
+		std::string timestamp = toLexicographicalTimeFormat(std::chrono::system_clock::now());
+		std::string srcDirNameWithTimestamp = (SrcDirName + ("_" + timestamp));
+		std::string cryptDirNameWithTimestamp = (CryptDirName + ("_" + timestamp));
 
-		boostFS::create_directories(tmpDir/SrcDirNameWithTimestamp);
-		boostFS::create_symlink(boostFS::system_complete(path/SrcDirName), tmpDir/SrcDirNameWithTimestamp/SrcDirName);
+		boostFS::create_directories(tmpDir/srcDirNameWithTimestamp);
+		boostFS::create_symlink(boostFS::system_complete(path/SrcDirName), tmpDir/srcDirNameWithTimestamp/SrcDirName);
 
-		if(Zipping::zip(tmpDir/SrcDirNameWithTimestamp, tmpDir/ZipFileName) != 0)
+		if(Zipping::zip(tmpDir/srcDirNameWithTimestamp, tmpDir/ZipFileName) != 0)
 		{
 			throw std::runtime_error("zipping failed");
 		}
 
-		auto destFolder = path/CryptStorageDirName/CryptDirNameWithTimestamp;
+		auto destFolder = path/CryptStorageDirName/cryptDirNameWithTimestamp;
 		if (boostFS::exists(destFolder))
 		{
 			boostFS::remove_all(destFolder);
@@ -392,11 +393,13 @@ namespace MainFunctionality
 			throw std::runtime_error("there is no crypt file '" + cryptFile.string() + "' but supposed to be");
 		}
 
+		boostFS::create_directories(path/SrcStorageDirName);
+
 		boostFS::path tmpDir;
 		do
 		{
 			auto scramblTempDirName = ScramblTempDirNamePrefix + ("_" + boostFS::unique_path().string());
-			tmpDir = boostFS::temp_directory_path()/scramblTempDirName;
+			tmpDir = path/SrcStorageDirName/scramblTempDirName;
 		} while (boostFS::exists(tmpDir));
 
 		boostFS::create_directories(tmpDir);
@@ -418,34 +421,27 @@ namespace MainFunctionality
 			throw std::runtime_error("unzipping failed");
 		}
 
-		if(Zipping::unzip(tmpDir/ZipFileName, tmpDir/zipDeploymentDirName) != 0)
-		{
-			throw std::runtime_error("unzipping failed");
-		}
-
 		auto lsResFileName = "lsRes.txt";
 
-		if(::system(("ls " + (tmpDir/zipDeploymentDirName).string() + " > " + lsResFileName).c_str()) != 0)
+		if(::system(("ls " + (tmpDir/zipDeploymentDirName).string() + " > " + (tmpDir/lsResFileName).string()).c_str()) != 0)
 		{
 			throw std::runtime_error("getting 'ls' failed while unscrambling");
 		}
-		
-/*
-accompanyWithConsoleProcessing([&]()
-					{
-						if (boostFS::exists(destFolder))
-						{
-							boostFS::remove_all(destFolder);
-						}
 
-						MainFunctionality::unscramble(path/CryptDirName/CryptFileName, destFolder, key);
+		std::ifstream lsResFile((tmpDir/lsResFileName).string());
+		std::string srcDirNameWithTimestamp;
+		std::getline(lsResFile, srcDirNameWithTimestamp);
 
-						if (!boostFS::exists(destFolder/SrcDirName))
-						{
-							throw std::runtime_error("unscrambling failed");
-						}
-					});
-*/
+		auto destDataPath = path/SrcStorageDirName/srcDirNameWithTimestamp;
+
+		if (boostFS::exists(destDataPath))
+		{
+			boostFS::remove_all(destDataPath);
+		}
+
+		boostFS::rename(tmpDir/zipDeploymentDirName/srcDirNameWithTimestamp, destDataPath);
+
+		decryptedDataPath = destDataPath;
 	}
 } // namespace MainFunctionality
 
