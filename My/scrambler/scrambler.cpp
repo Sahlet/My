@@ -257,28 +257,91 @@ namespace Encrypting
 		return ::system(sstream.str().c_str());
 	}
 
-	std::string genKey(unsigned int length)
+	template<typename Generator>
+	std::string genKey(unsigned int length, int seed)
 	{
+		auto getUniformDistributor = [](typename Generator::result_type min, typename Generator::result_type max)
+		{
+			if (min > max)
+			{
+				std::swap(min, max);
+			}
+
+			return [min, max](typename Generator::result_type randNumber)
+			{
+				return min + randNumber % (max - min + 1);
+			};
+		};
+
 		std::string key(length, '\0');
 		
-		std::mt19937 mt((std::random_device())());
-		std::uniform_int_distribution<int> sbymolCategoryDistributor(0, 2);
-		std::array<std::uniform_int_distribution<char>, 3> categories
+		Generator rnd(seed);
+		auto sbymolCategoryDistributor = getUniformDistributor(0, 2);
+		std::array<std::function<typename Generator::result_type(typename Generator::result_type)>, 3> categories
 		{
-			std::uniform_int_distribution<char>('0', '9'),
-			std::uniform_int_distribution<char>('a', 'z'),
-			std::uniform_int_distribution<char>('A', 'Z')
+			getUniformDistributor('0', '9'),
+			getUniformDistributor('a', 'z'),
+			getUniformDistributor('A', 'Z')
 		};
 
 		for (auto& ch : key)
 		{
-			ch = categories[sbymolCategoryDistributor(mt)](mt);
+			ch = (char)categories[sbymolCategoryDistributor(rnd())](rnd());
 		}
 
 		return std::move(key);
 	}
 
-	std::string getDefaultKey();
+	std::string genKey(unsigned int length)
+	{
+		return genKey<std::mt19937>(length, (std::random_device())());
+	}
+
+	std::string getDefaultKey()
+	{
+		class SimpleRand
+		{
+		public:
+			typedef uint32_t result_type;
+
+		public:
+			SimpleRand(uint32_t seed1 = 0)
+			{
+				seed(seed1);
+			}
+
+		public:
+			void seed(uint32_t seed1)
+			{
+				if (seed1 == 0)
+					seed1 = this->max();
+				m_iState = seed1;
+			}
+
+			uint32_t operator()()
+			{
+				m_iState ^= (m_iState << 13);
+				m_iState ^= (m_iState >> 17);
+				m_iState ^= (m_iState << 5);
+				return m_iState;
+			}
+
+			uint32_t min() const
+			{
+				return 1;
+			}
+
+			uint32_t max() const
+			{
+				return 0xFFFFFFFFu;
+			}
+
+		private:
+			uint32_t m_iState;
+		};
+
+		return genKey<SimpleRand>(DefaultKeyLength, ::strlen(LexicographicalTimeFormat));
+	}
 } // namespace Encrypting
 
 namespace Zipping
