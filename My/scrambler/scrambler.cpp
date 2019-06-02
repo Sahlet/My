@@ -104,11 +104,11 @@ namespace
 
 		sstream << "Workflow info:" << std::endl;
 
-		sstream << "-for encryping, the program takes folder <path>/" << SrcDirName << "/" << std::endl
-			<< " and converts it into encrypted file which puts into folders <path>/" << CryptDirName << "/" << std::endl
-			<< " and <path>/" << CryptStorageDirName << "/" << CryptDirName << "_" << LexicographicalTimeFormat << "/" << std::endl;
+		sstream << "-for encryping, the program takes folder <path>/" << SrcDirName << "/" << " and converts it into" << std::endl
+			<< " encrypted file <path>/" << CryptStorageDirName << "/" << CryptDirName << "_" << LexicographicalTimeFormat << "/" << CryptFileName << std::endl
+			<< " and creates hard link to encrypted file <path>/" << CryptDirName << "/" << CryptFileName << std::endl;
 
-		sstream << "-for decryping, the program takes encrypted file from the folder <path>/" << CryptDirName << "/" << std::endl
+		sstream << "-for decryping, the program takes encrypted file <path>/" << CryptDirName << "/" << CryptFileName << std::endl
 			<< " and converts it to sources files into folder" << std::endl
 			<< " <path>/" << SrcStorageDirName << "/" << SrcDirName << "_" << LexicographicalTimeFormat << "/" << std::endl;
 
@@ -443,7 +443,7 @@ namespace MainFunctionality
 
 		boostFS::create_directories(path/CryptDirName);
 
-		boostFS::create_symlink(boostFS::system_complete(destFolder/CryptFileName), destDataPath);
+		boostFS::create_hard_link(boostFS::system_complete(destFolder/CryptFileName), destDataPath);
 
 		if (!boostFS::exists(destDataPath))
 		{
