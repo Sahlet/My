@@ -32,7 +32,7 @@ public:
 
   for_square_brackets& operator=(const for_square_brackets& obj) throw (std::invalid_argument) {
     if (obj.w != w) throw (std::invalid_argument("for_square_brackets::operator=(const for_square_brackets& obj) : dimention error"));
-    if (ptr == obj.ptr) return;
+    if (ptr == obj.ptr) return *this;
     for (int i = 0; i < w; i++) {
       ptr[i] = obj.ptr[i];
     }

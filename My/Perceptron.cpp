@@ -5,6 +5,7 @@
 #include <istream>
 #include <ostream>
 #include <type_traits>
+#include <cmath>
 
 #ifndef __PRETTY_FUNCTION__
 #define __PRETTY_FUNCTION__ __func__
@@ -28,6 +29,7 @@ namespace My {
 			}
 			return std::move(X);
 		}
+/*
 #define VEC_OPERATIONS(NAME, OPERATOR)\
 		std::vector< double > NAME(const std::vector< double >& v1, const std::vector< double >& v2) {\
 			if (v1.size() != v2.size()) throw std::invalid_argument("v1 and v2 have different dimensions");\
@@ -119,6 +121,7 @@ namespace My {
 		    serialize(is, obj);
 		    return is;
 		}
+		*/
 
 	}
 
