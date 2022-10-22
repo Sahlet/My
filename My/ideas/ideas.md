@@ -124,6 +124,7 @@
 Модель подхода к созднию активов, которые очень просто создать, и которые удовлетворяют какую-то потребность людей.<br>
 Можно искать самые простоудовлетворяемые потребности среди всех потребностей человека.<br>
 Потребности можно исследовать качественно методами психологии, а можно точечно перебирая все нишы рынка.<br>
+
 [Business Verticals](https://www.strunkmedia.com/complete-list-business-verticals-industries-sectors/)<br>
 [Business Verticals](https://simplicable.com/en/industry-vertical)<br>
 
